@@ -1,0 +1,3 @@
+D:/KV Store Project/build/CMakeFiles/kvstore.dir
+D:/KV Store Project/build/CMakeFiles/edit_cache.dir
+D:/KV Store Project/build/CMakeFiles/rebuild_cache.dir

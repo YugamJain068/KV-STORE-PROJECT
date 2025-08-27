@@ -1,0 +1,3 @@
+PUT user1=Alice
+PUT user2=Bob
+PUT lang=C++
