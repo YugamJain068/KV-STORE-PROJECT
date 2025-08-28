@@ -1,33 +1,65 @@
 #include "Kvstore.h"
+#include "wal.h"
 #include <iostream>
 #include <fstream>
-#include <thread>
-#include <chrono>
 
-KVStore::KVStore()
+KVStore::KVStore() : writeAheadLog("walfile.log")
 {
-    loggerThread = std::thread(&KVStore::loggerWorker, this);
+    std::vector<std::string> Entries = writeAheadLog.loadAllEntries();
+    for (auto &raw : Entries)
+    {
+        std::string entry = raw;
+        if (!entry.empty() && entry.back() == '\r')
+            entry.pop_back();
+        if (entry.empty())
+            continue;
+
+        auto spacePos = entry.find(' ');
+        if (spacePos == std::string::npos)
+            continue;
+
+        std::string command = entry.substr(0, spacePos);
+
+        if (command == "PUT")
+        {
+            auto eqPos = entry.find('=', spacePos + 1);
+            if (eqPos == std::string::npos)
+                continue;
+
+            std::string key = entry.substr(spacePos + 1, eqPos - (spacePos + 1));
+            std::string value = entry.substr(eqPos + 1);
+
+            if (key.empty())
+                continue;
+
+            std::lock_guard<std::mutex> lock(mtx);
+            mp[key] = value;
+        }
+
+        else if (command == "DELETE")
+        {
+            std::string key = entry.substr(spacePos + 1);
+            if (key.empty())
+                continue;
+
+            std::lock_guard<std::mutex> lock(mtx);
+            mp.erase(key);
+        }
+        else{
+            continue;
+        }
+    }
 }
 
 KVStore::~KVStore()
 {
-    stopLogging = true;
-    log_cv.notify_all();
-    if (loggerThread.joinable())
-        loggerThread.join();
 }
 
 void KVStore::put(const std::string &key, const std::string &value)
 {
-    {
-        std::lock_guard<std::mutex> lock(log_mtx);
-        logQueue.push("PUT " + key + "=" + value);
-    }
-    log_cv.notify_one();
-    {
-        std::lock_guard<std::mutex> lock(mtx);
-        mp[key] = value;
-    }
+    writeAheadLog.appendEntry("PUT " + key + "=" + value);
+    std::lock_guard<std::mutex> lock(mtx);
+    mp[key] = value;
 }
 
 std::optional<std::string> KVStore::get(const std::string &key)
@@ -41,12 +73,7 @@ std::optional<std::string> KVStore::get(const std::string &key)
 
 bool KVStore::remove(const std::string &key)
 {
-    {
-        std::lock_guard<std::mutex> lock(log_mtx);
-        logQueue.push("DELETE " + key);
-    }
-    log_cv.notify_one();
-    
+    writeAheadLog.appendEntry("DELETE " + key);
     std::lock_guard<std::mutex> lock(mtx);
     return mp.erase(key) > 0;
 }
@@ -75,33 +102,5 @@ void KVStore::loadFromFile(const std::string &filename)
             std::string value = line.substr(pos + 1);
             mp[key] = std::move(value); // i can call put function here but it will cause self-deadlock because lock is acquired in loadFromFile function and then put function will also try to lock the same mutex resulting in deadlock
         }
-    }
-}
-
-
-
-void KVStore::loggerWorker()
-{
-    std::ofstream logFile("kvstore.log", std::ios::app);
-    if (!logFile.is_open())
-        return;
-
-    while (true)
-    {
-        std::unique_lock<std::mutex> lock(log_mtx);
-        log_cv.wait(lock, [this]
-                    { return !logQueue.empty() || stopLogging; });
-
-        while (!logQueue.empty())
-        {
-            std::string msg = logQueue.front();
-            logQueue.pop();
-            lock.unlock(); // allow producers to continue
-            logFile << msg << std::endl;
-            lock.lock();
-        }
-
-        if (stopLogging && logQueue.empty())
-            break;
     }
 }

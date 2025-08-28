@@ -11,6 +11,7 @@ set(CMAKE_DEPENDS_DEPENDENCY_FILES
   "D:/KV Store Project/src/kvstore.cpp" "CMakeFiles/kvstore.dir/src/kvstore.cpp.obj" "gcc" "CMakeFiles/kvstore.dir/src/kvstore.cpp.obj.d"
   "D:/KV Store Project/src/main.cpp" "CMakeFiles/kvstore.dir/src/main.cpp.obj" "gcc" "CMakeFiles/kvstore.dir/src/main.cpp.obj.d"
   "D:/KV Store Project/src/raft_node.cpp" "CMakeFiles/kvstore.dir/src/raft_node.cpp.obj" "gcc" "CMakeFiles/kvstore.dir/src/raft_node.cpp.obj.d"
+  "D:/KV Store Project/src/wal.cpp" "CMakeFiles/kvstore.dir/src/wal.cpp.obj" "gcc" "CMakeFiles/kvstore.dir/src/wal.cpp.obj.d"
   )
 
 # Targets to which this target links which contain Fortran sources.

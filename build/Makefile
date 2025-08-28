@@ -200,6 +200,30 @@ src/raft_node.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles\kvstore.dir\build.make CMakeFiles/kvstore.dir/src/raft_node.cpp.s
 .PHONY : src/raft_node.cpp.s
 
+src/wal.obj: src/wal.cpp.obj
+.PHONY : src/wal.obj
+
+# target to build an object file
+src/wal.cpp.obj:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\kvstore.dir\build.make CMakeFiles/kvstore.dir/src/wal.cpp.obj
+.PHONY : src/wal.cpp.obj
+
+src/wal.i: src/wal.cpp.i
+.PHONY : src/wal.i
+
+# target to preprocess a source file
+src/wal.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\kvstore.dir\build.make CMakeFiles/kvstore.dir/src/wal.cpp.i
+.PHONY : src/wal.cpp.i
+
+src/wal.s: src/wal.cpp.s
+.PHONY : src/wal.s
+
+# target to generate assembly for a file
+src/wal.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\kvstore.dir\build.make CMakeFiles/kvstore.dir/src/wal.cpp.s
+.PHONY : src/wal.cpp.s
+
 # Help Target
 help:
 	@echo The following are some of the valid targets for this Makefile:
@@ -218,6 +242,9 @@ help:
 	@echo ... src/raft_node.obj
 	@echo ... src/raft_node.i
 	@echo ... src/raft_node.s
+	@echo ... src/wal.obj
+	@echo ... src/wal.i
+	@echo ... src/wal.s
 .PHONY : help
 
 

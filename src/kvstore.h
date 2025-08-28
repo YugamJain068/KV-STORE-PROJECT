@@ -10,6 +10,7 @@
 #include <condition_variable>
 #include <atomic>
 #include <iostream>
+#include "wal.h"
 
 class KVStore
 {
@@ -38,13 +39,7 @@ public:
 private:
     std::unordered_map<std::string, std::string> mp;
     mutable std::mutex mtx;
-    std::queue<std::string> logQueue;
-    std::mutex log_mtx;
-    std::condition_variable log_cv;
-    std::atomic<bool> stopLogging;
-    std::thread loggerThread;
-
-    void loggerWorker();
+    WAL writeAheadLog;
 };
 
 #endif

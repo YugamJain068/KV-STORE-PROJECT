@@ -186,4 +186,5 @@ CMakeFiles/kvstore.dir/src/main.cpp.obj: \
  D:/msys64/mingw64/include/c++/15.2.0/bits/ostream.tcc \
  D:/msys64/mingw64/include/c++/15.2.0/istream \
  D:/msys64/mingw64/include/c++/15.2.0/bits/istream.tcc \
+ D:\KV\ Store\ Project\src\wal.h \
  D:/msys64/mingw64/include/c++/15.2.0/chrono

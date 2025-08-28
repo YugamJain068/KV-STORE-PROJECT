@@ -8,6 +8,7 @@ add_executable(kvstore
     src/main.cpp
     src/kvstore.cpp
     src/raft_node.cpp
+    src/wal.cpp
 )
 
 # Force console subsystem (important for MinGW)
