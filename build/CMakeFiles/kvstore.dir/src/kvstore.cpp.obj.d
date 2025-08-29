@@ -187,7 +187,12 @@ CMakeFiles/kvstore.dir/src/kvstore.cpp.obj: \
  D:/msys64/mingw64/include/c++/15.2.0/bits/ostream.tcc \
  D:/msys64/mingw64/include/c++/15.2.0/istream \
  D:/msys64/mingw64/include/c++/15.2.0/bits/istream.tcc \
- D:\KV\ Store\ Project\src\wal.h \
+ D:\KV\ Store\ Project\src\wal.h D:\KV\ Store\ Project\src\log_entry.h \
+ D:/msys64/mingw64/include/c++/15.2.0/sstream \
+ D:/msys64/mingw64/include/c++/15.2.0/bits/sstream.tcc \
+ D:/msys64/mingw64/include/c++/15.2.0/cstring \
+ D:/msys64/mingw64/include/string.h \
+ D:/msys64/mingw64/include/sec_api/string_s.h \
  D:/msys64/mingw64/include/c++/15.2.0/fstream \
  D:/msys64/mingw64/include/c++/15.2.0/bits/codecvt.h \
  D:/msys64/mingw64/include/c++/15.2.0/x86_64-w64-mingw32/bits/basic_file.h \

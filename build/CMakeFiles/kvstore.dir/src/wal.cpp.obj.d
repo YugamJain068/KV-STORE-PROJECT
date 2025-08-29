@@ -1,5 +1,5 @@
 CMakeFiles/kvstore.dir/src/wal.cpp.obj: D:\KV\ Store\ Project\src\wal.cpp \
- D:\KV\ Store\ Project\src\wal.h \
+ D:\KV\ Store\ Project\src\log_entry.h \
  D:/msys64/mingw64/include/c++/15.2.0/string \
  D:/msys64/mingw64/include/c++/15.2.0/bits/requires_hosted.h \
  D:/msys64/mingw64/include/c++/15.2.0/x86_64-w64-mingw32/bits/c++config.h \
@@ -98,41 +98,7 @@ CMakeFiles/kvstore.dir/src/wal.cpp.obj: D:\KV\ Store\ Project\src\wal.cpp \
  D:/msys64/mingw64/include/c++/15.2.0/bits/uses_allocator.h \
  D:/msys64/mingw64/include/c++/15.2.0/bits/uses_allocator_args.h \
  D:/msys64/mingw64/include/c++/15.2.0/tuple \
- D:/msys64/mingw64/include/c++/15.2.0/vector \
- D:/msys64/mingw64/include/c++/15.2.0/bits/stl_uninitialized.h \
- D:/msys64/mingw64/include/c++/15.2.0/bits/stl_vector.h \
- D:/msys64/mingw64/include/c++/15.2.0/bits/stl_bvector.h \
- D:/msys64/mingw64/include/c++/15.2.0/bits/vector.tcc \
- D:/msys64/mingw64/include/c++/15.2.0/mutex \
- D:/msys64/mingw64/include/c++/15.2.0/bits/chrono.h \
- D:/msys64/mingw64/include/c++/15.2.0/ratio \
- D:/msys64/mingw64/include/c++/15.2.0/cstdint \
- D:/msys64/mingw64/lib/gcc/x86_64-w64-mingw32/15.2.0/include/stdint.h \
- D:/msys64/mingw64/include/stdint.h \
- D:/msys64/mingw64/include/c++/15.2.0/limits \
- D:/msys64/mingw64/include/c++/15.2.0/ctime \
- D:/msys64/mingw64/include/time.h D:/msys64/mingw64/include/sys/timeb.h \
- D:/msys64/mingw64/include/sec_api/sys/timeb_s.h \
- D:/msys64/mingw64/include/_timeval.h \
- D:/msys64/mingw64/include/pthread_time.h \
- D:/msys64/mingw64/include/pthread_compat.h \
- D:/msys64/mingw64/include/c++/15.2.0/bits/parse_numbers.h \
- D:/msys64/mingw64/include/c++/15.2.0/bits/std_mutex.h \
- D:/msys64/mingw64/include/c++/15.2.0/x86_64-w64-mingw32/bits/gthr.h \
- D:/msys64/mingw64/include/c++/15.2.0/x86_64-w64-mingw32/bits/gthr-default.h \
- D:/msys64/mingw64/include/pthread.h \
- D:/msys64/mingw64/include/sys/types.h \
- D:/msys64/mingw64/include/process.h \
- D:/msys64/mingw64/include/corecrt_startup.h \
- D:/msys64/mingw64/include/signal.h \
- D:/msys64/mingw64/include/pthread_signal.h \
- D:/msys64/mingw64/include/sched.h \
- D:/msys64/mingw64/include/pthread_unistd.h \
- D:/msys64/mingw64/include/c++/15.2.0/bits/unique_lock.h \
- D:/msys64/mingw64/include/c++/15.2.0/x86_64-w64-mingw32/bits/error_constants.h \
- D:/msys64/mingw64/include/c++/15.2.0/ext/atomicity.h \
- D:/msys64/mingw64/include/c++/15.2.0/x86_64-w64-mingw32/bits/atomic_word.h \
- D:/msys64/mingw64/include/c++/15.2.0/fstream \
+ D:/msys64/mingw64/include/c++/15.2.0/sstream \
  D:/msys64/mingw64/include/c++/15.2.0/istream \
  D:/msys64/mingw64/include/c++/15.2.0/ios \
  D:/msys64/mingw64/include/c++/15.2.0/exception \
@@ -141,9 +107,27 @@ CMakeFiles/kvstore.dir/src/wal.cpp.obj: D:\KV\ Store\ Project\src\wal.cpp \
  D:/msys64/mingw64/include/c++/15.2.0/typeinfo \
  D:/msys64/mingw64/include/c++/15.2.0/bits/nested_exception.h \
  D:/msys64/mingw64/include/c++/15.2.0/bits/ios_base.h \
+ D:/msys64/mingw64/include/c++/15.2.0/ext/atomicity.h \
+ D:/msys64/mingw64/include/c++/15.2.0/x86_64-w64-mingw32/bits/gthr.h \
+ D:/msys64/mingw64/include/c++/15.2.0/x86_64-w64-mingw32/bits/gthr-default.h \
+ D:/msys64/mingw64/include/pthread.h \
+ D:/msys64/mingw64/include/sys/types.h \
+ D:/msys64/mingw64/include/process.h \
+ D:/msys64/mingw64/include/corecrt_startup.h \
+ D:/msys64/mingw64/include/signal.h \
+ D:/msys64/mingw64/include/pthread_signal.h \
+ D:/msys64/mingw64/include/time.h D:/msys64/mingw64/include/sys/timeb.h \
+ D:/msys64/mingw64/include/sec_api/sys/timeb_s.h \
+ D:/msys64/mingw64/include/_timeval.h \
+ D:/msys64/mingw64/include/pthread_time.h \
+ D:/msys64/mingw64/include/pthread_compat.h \
+ D:/msys64/mingw64/include/sched.h \
+ D:/msys64/mingw64/include/pthread_unistd.h \
+ D:/msys64/mingw64/include/c++/15.2.0/x86_64-w64-mingw32/bits/atomic_word.h \
  D:/msys64/mingw64/include/c++/15.2.0/bits/locale_classes.h \
  D:/msys64/mingw64/include/c++/15.2.0/bits/locale_classes.tcc \
  D:/msys64/mingw64/include/c++/15.2.0/system_error \
+ D:/msys64/mingw64/include/c++/15.2.0/x86_64-w64-mingw32/bits/error_constants.h \
  D:/msys64/mingw64/include/c++/15.2.0/stdexcept \
  D:/msys64/mingw64/include/c++/15.2.0/streambuf \
  D:/msys64/mingw64/include/c++/15.2.0/bits/streambuf.tcc \
@@ -160,6 +144,27 @@ CMakeFiles/kvstore.dir/src/wal.cpp.obj: D:\KV\ Store\ Project\src\wal.cpp \
  D:/msys64/mingw64/include/c++/15.2.0/bits/ostream.h \
  D:/msys64/mingw64/include/c++/15.2.0/bits/ostream.tcc \
  D:/msys64/mingw64/include/c++/15.2.0/bits/istream.tcc \
+ D:/msys64/mingw64/include/c++/15.2.0/bits/sstream.tcc \
+ D:/msys64/mingw64/include/c++/15.2.0/vector \
+ D:/msys64/mingw64/include/c++/15.2.0/bits/stl_uninitialized.h \
+ D:/msys64/mingw64/include/c++/15.2.0/bits/stl_vector.h \
+ D:/msys64/mingw64/include/c++/15.2.0/bits/stl_bvector.h \
+ D:/msys64/mingw64/include/c++/15.2.0/bits/vector.tcc \
+ D:/msys64/mingw64/include/c++/15.2.0/cstring \
+ D:/msys64/mingw64/include/string.h \
+ D:/msys64/mingw64/include/sec_api/string_s.h \
+ D:/msys64/mingw64/include/c++/15.2.0/cstdint \
+ D:/msys64/mingw64/lib/gcc/x86_64-w64-mingw32/15.2.0/include/stdint.h \
+ D:/msys64/mingw64/include/stdint.h D:\KV\ Store\ Project\src\wal.h \
+ D:/msys64/mingw64/include/c++/15.2.0/mutex \
+ D:/msys64/mingw64/include/c++/15.2.0/bits/chrono.h \
+ D:/msys64/mingw64/include/c++/15.2.0/ratio \
+ D:/msys64/mingw64/include/c++/15.2.0/limits \
+ D:/msys64/mingw64/include/c++/15.2.0/ctime \
+ D:/msys64/mingw64/include/c++/15.2.0/bits/parse_numbers.h \
+ D:/msys64/mingw64/include/c++/15.2.0/bits/std_mutex.h \
+ D:/msys64/mingw64/include/c++/15.2.0/bits/unique_lock.h \
+ D:/msys64/mingw64/include/c++/15.2.0/fstream \
  D:/msys64/mingw64/include/c++/15.2.0/bits/codecvt.h \
  D:/msys64/mingw64/include/c++/15.2.0/x86_64-w64-mingw32/bits/basic_file.h \
  D:/msys64/mingw64/include/c++/15.2.0/x86_64-w64-mingw32/bits/c++io.h \

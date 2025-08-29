@@ -66,6 +66,7 @@ CMakeFiles/kvstore.dir/src/kvstore.cpp.obj: D:/KV\ Store\ Project/src/kvstore.cp
   D:/msys64/mingw64/include/c++/15.2.0/bits/requires_hosted.h \
   D:/msys64/mingw64/include/c++/15.2.0/bits/shared_ptr.h \
   D:/msys64/mingw64/include/c++/15.2.0/bits/shared_ptr_base.h \
+  D:/msys64/mingw64/include/c++/15.2.0/bits/sstream.tcc \
   D:/msys64/mingw64/include/c++/15.2.0/bits/std_abs.h \
   D:/msys64/mingw64/include/c++/15.2.0/bits/std_mutex.h \
   D:/msys64/mingw64/include/c++/15.2.0/bits/std_thread.h \
@@ -104,6 +105,7 @@ CMakeFiles/kvstore.dir/src/kvstore.cpp.obj: D:/KV\ Store\ Project/src/kvstore.cp
   D:/msys64/mingw64/include/c++/15.2.0/cstdint \
   D:/msys64/mingw64/include/c++/15.2.0/cstdio \
   D:/msys64/mingw64/include/c++/15.2.0/cstdlib \
+  D:/msys64/mingw64/include/c++/15.2.0/cstring \
   D:/msys64/mingw64/include/c++/15.2.0/ctime \
   D:/msys64/mingw64/include/c++/15.2.0/cwchar \
   D:/msys64/mingw64/include/c++/15.2.0/cwctype \
@@ -132,6 +134,7 @@ CMakeFiles/kvstore.dir/src/kvstore.cpp.obj: D:/KV\ Store\ Project/src/kvstore.cp
   D:/msys64/mingw64/include/c++/15.2.0/pstl/pstl_config.h \
   D:/msys64/mingw64/include/c++/15.2.0/queue \
   D:/msys64/mingw64/include/c++/15.2.0/ratio \
+  D:/msys64/mingw64/include/c++/15.2.0/sstream \
   D:/msys64/mingw64/include/c++/15.2.0/stdexcept \
   D:/msys64/mingw64/include/c++/15.2.0/stdlib.h \
   D:/msys64/mingw64/include/c++/15.2.0/streambuf \
@@ -178,6 +181,7 @@ CMakeFiles/kvstore.dir/src/kvstore.cpp.obj: D:/KV\ Store\ Project/src/kvstore.cp
   D:/msys64/mingw64/include/sdks/_mingw_ddk.h \
   D:/msys64/mingw64/include/sec_api/stdio_s.h \
   D:/msys64/mingw64/include/sec_api/stdlib_s.h \
+  D:/msys64/mingw64/include/sec_api/string_s.h \
   D:/msys64/mingw64/include/sec_api/sys/timeb_s.h \
   D:/msys64/mingw64/include/sec_api/wchar_s.h \
   D:/msys64/mingw64/include/signal.h \
@@ -185,6 +189,7 @@ CMakeFiles/kvstore.dir/src/kvstore.cpp.obj: D:/KV\ Store\ Project/src/kvstore.cp
   D:/msys64/mingw64/include/stdint.h \
   D:/msys64/mingw64/include/stdio.h \
   D:/msys64/mingw64/include/stdlib.h \
+  D:/msys64/mingw64/include/string.h \
   D:/msys64/mingw64/include/swprintf.inl \
   D:/msys64/mingw64/include/sys/timeb.h \
   D:/msys64/mingw64/include/sys/types.h \
@@ -198,6 +203,7 @@ CMakeFiles/kvstore.dir/src/kvstore.cpp.obj: D:/KV\ Store\ Project/src/kvstore.cp
   D:/msys64/mingw64/lib/gcc/x86_64-w64-mingw32/15.2.0/include/stdint.h \
   D:/msys64/mingw64/lib/gcc/x86_64-w64-mingw32/15.2.0/include/syslimits.h \
   D:/KV\ Store\ Project/src/Kvstore.h \
+  D:/KV\ Store\ Project/src/log_entry.h \
   D:/KV\ Store\ Project/src/wal.h
 
 CMakeFiles/kvstore.dir/src/main.cpp.obj: D:/KV\ Store\ Project/src/main.cpp \
@@ -263,6 +269,7 @@ CMakeFiles/kvstore.dir/src/main.cpp.obj: D:/KV\ Store\ Project/src/main.cpp \
   D:/msys64/mingw64/include/c++/15.2.0/bits/requires_hosted.h \
   D:/msys64/mingw64/include/c++/15.2.0/bits/shared_ptr.h \
   D:/msys64/mingw64/include/c++/15.2.0/bits/shared_ptr_base.h \
+  D:/msys64/mingw64/include/c++/15.2.0/bits/sstream.tcc \
   D:/msys64/mingw64/include/c++/15.2.0/bits/std_abs.h \
   D:/msys64/mingw64/include/c++/15.2.0/bits/std_mutex.h \
   D:/msys64/mingw64/include/c++/15.2.0/bits/std_thread.h \
@@ -302,6 +309,7 @@ CMakeFiles/kvstore.dir/src/main.cpp.obj: D:/KV\ Store\ Project/src/main.cpp \
   D:/msys64/mingw64/include/c++/15.2.0/cstdint \
   D:/msys64/mingw64/include/c++/15.2.0/cstdio \
   D:/msys64/mingw64/include/c++/15.2.0/cstdlib \
+  D:/msys64/mingw64/include/c++/15.2.0/cstring \
   D:/msys64/mingw64/include/c++/15.2.0/ctime \
   D:/msys64/mingw64/include/c++/15.2.0/cwchar \
   D:/msys64/mingw64/include/c++/15.2.0/cwctype \
@@ -329,6 +337,7 @@ CMakeFiles/kvstore.dir/src/main.cpp.obj: D:/KV\ Store\ Project/src/main.cpp \
   D:/msys64/mingw64/include/c++/15.2.0/pstl/pstl_config.h \
   D:/msys64/mingw64/include/c++/15.2.0/queue \
   D:/msys64/mingw64/include/c++/15.2.0/ratio \
+  D:/msys64/mingw64/include/c++/15.2.0/sstream \
   D:/msys64/mingw64/include/c++/15.2.0/stdexcept \
   D:/msys64/mingw64/include/c++/15.2.0/stdlib.h \
   D:/msys64/mingw64/include/c++/15.2.0/streambuf \
@@ -373,6 +382,7 @@ CMakeFiles/kvstore.dir/src/main.cpp.obj: D:/KV\ Store\ Project/src/main.cpp \
   D:/msys64/mingw64/include/sdks/_mingw_ddk.h \
   D:/msys64/mingw64/include/sec_api/stdio_s.h \
   D:/msys64/mingw64/include/sec_api/stdlib_s.h \
+  D:/msys64/mingw64/include/sec_api/string_s.h \
   D:/msys64/mingw64/include/sec_api/sys/timeb_s.h \
   D:/msys64/mingw64/include/sec_api/wchar_s.h \
   D:/msys64/mingw64/include/signal.h \
@@ -380,6 +390,7 @@ CMakeFiles/kvstore.dir/src/main.cpp.obj: D:/KV\ Store\ Project/src/main.cpp \
   D:/msys64/mingw64/include/stdint.h \
   D:/msys64/mingw64/include/stdio.h \
   D:/msys64/mingw64/include/stdlib.h \
+  D:/msys64/mingw64/include/string.h \
   D:/msys64/mingw64/include/swprintf.inl \
   D:/msys64/mingw64/include/sys/timeb.h \
   D:/msys64/mingw64/include/sys/types.h \
@@ -393,6 +404,7 @@ CMakeFiles/kvstore.dir/src/main.cpp.obj: D:/KV\ Store\ Project/src/main.cpp \
   D:/msys64/mingw64/lib/gcc/x86_64-w64-mingw32/15.2.0/include/stdint.h \
   D:/msys64/mingw64/lib/gcc/x86_64-w64-mingw32/15.2.0/include/syslimits.h \
   D:/KV\ Store\ Project/src/kvstore.h \
+  D:/KV\ Store\ Project/src/log_entry.h \
   D:/KV\ Store\ Project/src/wal.h
 
 CMakeFiles/kvstore.dir/src/raft_node.cpp.obj: D:/KV\ Store\ Project/src/raft_node.cpp
@@ -450,6 +462,7 @@ CMakeFiles/kvstore.dir/src/wal.cpp.obj: D:/KV\ Store\ Project/src/wal.cpp \
   D:/msys64/mingw64/include/c++/15.2.0/bits/range_access.h \
   D:/msys64/mingw64/include/c++/15.2.0/bits/refwrap.h \
   D:/msys64/mingw64/include/c++/15.2.0/bits/requires_hosted.h \
+  D:/msys64/mingw64/include/c++/15.2.0/bits/sstream.tcc \
   D:/msys64/mingw64/include/c++/15.2.0/bits/std_abs.h \
   D:/msys64/mingw64/include/c++/15.2.0/bits/std_mutex.h \
   D:/msys64/mingw64/include/c++/15.2.0/bits/stl_algobase.h \
@@ -481,6 +494,7 @@ CMakeFiles/kvstore.dir/src/wal.cpp.obj: D:/KV\ Store\ Project/src/wal.cpp \
   D:/msys64/mingw64/include/c++/15.2.0/cstdint \
   D:/msys64/mingw64/include/c++/15.2.0/cstdio \
   D:/msys64/mingw64/include/c++/15.2.0/cstdlib \
+  D:/msys64/mingw64/include/c++/15.2.0/cstring \
   D:/msys64/mingw64/include/c++/15.2.0/ctime \
   D:/msys64/mingw64/include/c++/15.2.0/cwchar \
   D:/msys64/mingw64/include/c++/15.2.0/cwctype \
@@ -496,6 +510,7 @@ CMakeFiles/kvstore.dir/src/wal.cpp.obj: D:/KV\ Store\ Project/src/wal.cpp \
   D:/msys64/mingw64/include/c++/15.2.0/initializer_list \
   D:/msys64/mingw64/include/c++/15.2.0/ios \
   D:/msys64/mingw64/include/c++/15.2.0/iosfwd \
+  D:/msys64/mingw64/include/c++/15.2.0/iostream \
   D:/msys64/mingw64/include/c++/15.2.0/istream \
   D:/msys64/mingw64/include/c++/15.2.0/limits \
   D:/msys64/mingw64/include/c++/15.2.0/mutex \
@@ -503,6 +518,7 @@ CMakeFiles/kvstore.dir/src/wal.cpp.obj: D:/KV\ Store\ Project/src/wal.cpp \
   D:/msys64/mingw64/include/c++/15.2.0/ostream \
   D:/msys64/mingw64/include/c++/15.2.0/pstl/pstl_config.h \
   D:/msys64/mingw64/include/c++/15.2.0/ratio \
+  D:/msys64/mingw64/include/c++/15.2.0/sstream \
   D:/msys64/mingw64/include/c++/15.2.0/stdexcept \
   D:/msys64/mingw64/include/c++/15.2.0/stdlib.h \
   D:/msys64/mingw64/include/c++/15.2.0/streambuf \
@@ -548,6 +564,7 @@ CMakeFiles/kvstore.dir/src/wal.cpp.obj: D:/KV\ Store\ Project/src/wal.cpp \
   D:/msys64/mingw64/include/sdks/_mingw_ddk.h \
   D:/msys64/mingw64/include/sec_api/stdio_s.h \
   D:/msys64/mingw64/include/sec_api/stdlib_s.h \
+  D:/msys64/mingw64/include/sec_api/string_s.h \
   D:/msys64/mingw64/include/sec_api/sys/timeb_s.h \
   D:/msys64/mingw64/include/sec_api/wchar_s.h \
   D:/msys64/mingw64/include/signal.h \
@@ -555,6 +572,7 @@ CMakeFiles/kvstore.dir/src/wal.cpp.obj: D:/KV\ Store\ Project/src/wal.cpp \
   D:/msys64/mingw64/include/stdint.h \
   D:/msys64/mingw64/include/stdio.h \
   D:/msys64/mingw64/include/stdlib.h \
+  D:/msys64/mingw64/include/string.h \
   D:/msys64/mingw64/include/swprintf.inl \
   D:/msys64/mingw64/include/sys/timeb.h \
   D:/msys64/mingw64/include/sys/types.h \
@@ -567,6 +585,7 @@ CMakeFiles/kvstore.dir/src/wal.cpp.obj: D:/KV\ Store\ Project/src/wal.cpp \
   D:/msys64/mingw64/lib/gcc/x86_64-w64-mingw32/15.2.0/include/stddef.h \
   D:/msys64/mingw64/lib/gcc/x86_64-w64-mingw32/15.2.0/include/stdint.h \
   D:/msys64/mingw64/lib/gcc/x86_64-w64-mingw32/15.2.0/include/syslimits.h \
+  D:/KV\ Store\ Project/src/log_entry.h \
   D:/KV\ Store\ Project/src/wal.h
 
 
@@ -629,6 +648,8 @@ D:/msys64/mingw64/include/c++/15.2.0/bits/ostream_insert.h:
 D:/msys64/mingw64/include/pthread_signal.h:
 
 D:/msys64/mingw64/include/c++/15.2.0/bits/locale_facets.tcc:
+
+D:/msys64/mingw64/include/c++/15.2.0/cstring:
 
 D:/msys64/mingw64/include/c++/15.2.0/bits/allocator.h:
 
@@ -732,6 +753,8 @@ D:/msys64/mingw64/include/c++/15.2.0/bits/requires_hosted.h:
 
 D:/msys64/mingw64/include/c++/15.2.0/bits/shared_ptr_base.h:
 
+D:/msys64/mingw64/include/c++/15.2.0/bits/sstream.tcc:
+
 D:/msys64/mingw64/include/c++/15.2.0/bits/std_abs.h:
 
 D:/msys64/mingw64/include/c++/15.2.0/bits/std_mutex.h:
@@ -783,6 +806,8 @@ D:/msys64/mingw64/include/c++/15.2.0/fstream:
 D:/msys64/mingw64/include/c++/15.2.0/bits/unique_lock.h:
 
 D:/msys64/mingw64/include/c++/15.2.0/bits/unique_ptr.h:
+
+D:/msys64/mingw64/include/string.h:
 
 D:/msys64/mingw64/include/c++/15.2.0/bits/unordered_map.h:
 
@@ -852,6 +877,8 @@ D:/msys64/mingw64/include/c++/15.2.0/x86_64-w64-mingw32/bits/error_constants.h:
 
 D:/msys64/mingw64/include/c++/15.2.0/mutex:
 
+D:/KV\ Store\ Project/src/log_entry.h:
+
 D:/msys64/mingw64/include/c++/15.2.0/new:
 
 D:/msys64/mingw64/include/c++/15.2.0/optional:
@@ -863,6 +890,8 @@ D:/msys64/mingw64/include/c++/15.2.0/ostream:
 D:/msys64/mingw64/include/c++/15.2.0/pstl/pstl_config.h:
 
 D:/msys64/mingw64/include/c++/15.2.0/ratio:
+
+D:/msys64/mingw64/include/c++/15.2.0/sstream:
 
 D:/msys64/mingw64/include/c++/15.2.0/stdexcept:
 
@@ -944,6 +973,12 @@ D:/msys64/mingw64/include/sdks/_mingw_ddk.h:
 
 D:/msys64/mingw64/include/sec_api/stdio_s.h:
 
+D:/KV\ Store\ Project/src/main.cpp:
+
+D:/KV\ Store\ Project/src/Kvstore.h:
+
+D:/msys64/mingw64/include/sec_api/string_s.h:
+
 D:/msys64/mingw64/include/signal.h:
 
 D:/msys64/mingw64/include/stddef.h:
@@ -969,10 +1004,6 @@ D:/msys64/mingw64/lib/gcc/x86_64-w64-mingw32/15.2.0/include/stddef.h:
 D:/msys64/mingw64/lib/gcc/x86_64-w64-mingw32/15.2.0/include/stdint.h:
 
 D:/msys64/mingw64/lib/gcc/x86_64-w64-mingw32/15.2.0/include/syslimits.h:
-
-D:/KV\ Store\ Project/src/main.cpp:
-
-D:/KV\ Store\ Project/src/Kvstore.h:
 
 D:/KV\ Store\ Project/src/wal.h:
 

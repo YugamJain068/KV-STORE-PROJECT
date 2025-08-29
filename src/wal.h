@@ -1,6 +1,7 @@
 #ifndef WAL_H
 #define WAL_H
 
+#include "log_entry.h"
 #include <string>
 #include <vector>
 #include <mutex>
@@ -12,11 +13,13 @@ public:
     ~WAL() = default;
 
     void appendEntry(const std::string &command);
-    std::vector<std::string> loadAllEntries() const;
+    std::vector<LogEntry> loadAllEntries() const;
 
 private:
-    std::string walFile;
+    std::string walBinaryFile;
+    std::vector<LogEntry> cachedEntries;
     mutable std::mutex wal_mtx;
+    uint64_t lastIndex;
 };
 
 #endif

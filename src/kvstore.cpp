@@ -3,31 +3,27 @@
 #include <iostream>
 #include <fstream>
 
-KVStore::KVStore() : writeAheadLog("walfile.log")
+KVStore::KVStore() : writeAheadLog("walfile.wal")
 {
-    std::vector<std::string> Entries = writeAheadLog.loadAllEntries();
-    for (auto &raw : Entries)
+    std::vector<LogEntry> Entries = writeAheadLog.loadAllEntries();
+    for (const auto &entry : Entries)
     {
-        std::string entry = raw;
-        if (!entry.empty() && entry.back() == '\r')
-            entry.pop_back();
-        if (entry.empty())
-            continue;
+        const std::string &commandStr = entry.command;
 
-        auto spacePos = entry.find(' ');
+        auto spacePos = commandStr.find(' ');
         if (spacePos == std::string::npos)
             continue;
 
-        std::string command = entry.substr(0, spacePos);
+        std::string command = commandStr.substr(0, spacePos);
 
         if (command == "PUT")
         {
-            auto eqPos = entry.find('=', spacePos + 1);
+            auto eqPos = commandStr.find('=', spacePos + 1);
             if (eqPos == std::string::npos)
                 continue;
 
-            std::string key = entry.substr(spacePos + 1, eqPos - (spacePos + 1));
-            std::string value = entry.substr(eqPos + 1);
+            std::string key = commandStr.substr(spacePos + 1, eqPos - (spacePos + 1));
+            std::string value = commandStr.substr(eqPos + 1);
 
             if (key.empty())
                 continue;
@@ -38,7 +34,7 @@ KVStore::KVStore() : writeAheadLog("walfile.log")
 
         else if (command == "DELETE")
         {
-            std::string key = entry.substr(spacePos + 1);
+            std::string key = commandStr.substr(spacePos + 1);
             if (key.empty())
                 continue;
 
