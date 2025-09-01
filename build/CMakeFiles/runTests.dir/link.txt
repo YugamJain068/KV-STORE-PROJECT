@@ -1,0 +1,1 @@
+/usr/bin/c++ -g CMakeFiles/runTests.dir/tests/kvstore_tests.cpp.o CMakeFiles/runTests.dir/tests/concurrency_tests.cpp.o CMakeFiles/runTests.dir/src/kvstore.cpp.o CMakeFiles/runTests.dir/src/wal.cpp.o -o runTests  lib/libgtest.a lib/libgtest_main.a lib/libgtest.a 

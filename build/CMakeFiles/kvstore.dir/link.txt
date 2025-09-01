@@ -1,0 +1,1 @@
+/usr/bin/c++ -g CMakeFiles/kvstore.dir/src/main.cpp.o CMakeFiles/kvstore.dir/src/kvstore.cpp.o CMakeFiles/kvstore.dir/src/raft_node.cpp.o CMakeFiles/kvstore.dir/src/wal.cpp.o -o kvstore 
