@@ -3,6 +3,7 @@
 #include <iostream>
 #include <fstream>
 
+
 KVStore::KVStore() : writeAheadLog("walfile.wal")
 {
     std::vector<LogEntry> Entries = writeAheadLog.loadAllEntries();
@@ -28,7 +29,7 @@ KVStore::KVStore() : writeAheadLog("walfile.wal")
             if (key.empty())
                 continue;
 
-            std::lock_guard<std::mutex> lock(mtx);
+            std::unique_lock<std::shared_mutex> lock(mtx);
             mp[key] = value;
         }
 
@@ -38,7 +39,7 @@ KVStore::KVStore() : writeAheadLog("walfile.wal")
             if (key.empty())
                 continue;
 
-            std::lock_guard<std::mutex> lock(mtx);
+            std::unique_lock<std::shared_mutex> lock(mtx);
             mp.erase(key);
         }
         else{
@@ -54,13 +55,13 @@ KVStore::~KVStore()
 void KVStore::put(const std::string &key, const std::string &value)
 {
     writeAheadLog.appendEntry("PUT " + key + "=" + value);
-    std::lock_guard<std::mutex> lock(mtx);
+    std::unique_lock<std::shared_mutex> lock(mtx);
     mp[key] = value;
 }
 
 std::optional<std::string> KVStore::get(const std::string &key)
 {
-    std::lock_guard<std::mutex> lock(mtx);
+    std::shared_lock<std::shared_mutex> lock(mtx);
     auto it = mp.find(key);
     if (it != mp.end())
         return it->second;
@@ -70,13 +71,13 @@ std::optional<std::string> KVStore::get(const std::string &key)
 bool KVStore::remove(const std::string &key)
 {
     writeAheadLog.appendEntry("DELETE " + key);
-    std::lock_guard<std::mutex> lock(mtx);
+    std::unique_lock<std::shared_mutex> lock(mtx);
     return mp.erase(key) > 0;
 }
 
 void KVStore::saveToFile(const std::string &filename)
 {
-    std::lock_guard<std::mutex> lock(mtx);
+   std::unique_lock<std::shared_mutex> lock(mtx);
     std::ofstream out(filename);
     for (const auto &[key, value] : mp)
     {
@@ -88,7 +89,7 @@ void KVStore::loadFromFile(const std::string &filename)
 {
     std::ifstream in(filename);
     std::string line;
-    std::lock_guard<std::mutex> lock(mtx);
+    std::unique_lock<std::shared_mutex> lock(mtx);
     while (std::getline(in, line))
     {
         auto pos = line.find('=');

@@ -10,6 +10,7 @@
 #include <condition_variable>
 #include <atomic>
 #include <iostream>
+#include <shared_mutex>
 #include "wal.h"
 
 class KVStore
@@ -38,7 +39,7 @@ public:
 
 private:
     std::unordered_map<std::string, std::string> mp;
-    mutable std::mutex mtx;
+    mutable std::shared_mutex mtx;
     WAL writeAheadLog;
 };
 

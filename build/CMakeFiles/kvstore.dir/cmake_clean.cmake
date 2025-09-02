@@ -5,6 +5,8 @@ file(REMOVE_RECURSE
   "CMakeFiles/kvstore.dir/src/main.cpp.o.d"
   "CMakeFiles/kvstore.dir/src/raft_node.cpp.o"
   "CMakeFiles/kvstore.dir/src/raft_node.cpp.o.d"
+  "CMakeFiles/kvstore.dir/src/server.cpp.o"
+  "CMakeFiles/kvstore.dir/src/server.cpp.o.d"
   "CMakeFiles/kvstore.dir/src/wal.cpp.o"
   "CMakeFiles/kvstore.dir/src/wal.cpp.o.d"
   "kvstore"
