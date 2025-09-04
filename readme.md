@@ -21,7 +21,8 @@ It supports basic CRUD operations (`PUT`, `GET`, `DELETE`) with **Write-Ahead Lo
 ## Build Instructions
 ```bash
 # Clone repository
-git clone <your-repo-url>
+git clone https://github.com/YugamJain068/KV-STORE-PROJECT
+
 cd kvstore_project
 
 # Create build directory
