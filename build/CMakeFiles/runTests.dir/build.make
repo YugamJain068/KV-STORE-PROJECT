@@ -125,12 +125,57 @@ CMakeFiles/runTests.dir/src/wal.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/runTests.dir/src/wal.cpp.s"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/yugam05/kvstore_project/src/wal.cpp -o CMakeFiles/runTests.dir/src/wal.cpp.s
 
+CMakeFiles/runTests.dir/tests/wal_recovery_test.cpp.o: CMakeFiles/runTests.dir/flags.make
+CMakeFiles/runTests.dir/tests/wal_recovery_test.cpp.o: /home/yugam05/kvstore_project/tests/wal_recovery_test.cpp
+CMakeFiles/runTests.dir/tests/wal_recovery_test.cpp.o: CMakeFiles/runTests.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/yugam05/kvstore_project/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_5) "Building CXX object CMakeFiles/runTests.dir/tests/wal_recovery_test.cpp.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/runTests.dir/tests/wal_recovery_test.cpp.o -MF CMakeFiles/runTests.dir/tests/wal_recovery_test.cpp.o.d -o CMakeFiles/runTests.dir/tests/wal_recovery_test.cpp.o -c /home/yugam05/kvstore_project/tests/wal_recovery_test.cpp
+
+CMakeFiles/runTests.dir/tests/wal_recovery_test.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/runTests.dir/tests/wal_recovery_test.cpp.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/yugam05/kvstore_project/tests/wal_recovery_test.cpp > CMakeFiles/runTests.dir/tests/wal_recovery_test.cpp.i
+
+CMakeFiles/runTests.dir/tests/wal_recovery_test.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/runTests.dir/tests/wal_recovery_test.cpp.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/yugam05/kvstore_project/tests/wal_recovery_test.cpp -o CMakeFiles/runTests.dir/tests/wal_recovery_test.cpp.s
+
+CMakeFiles/runTests.dir/tests/tcp_server_tests.cpp.o: CMakeFiles/runTests.dir/flags.make
+CMakeFiles/runTests.dir/tests/tcp_server_tests.cpp.o: /home/yugam05/kvstore_project/tests/tcp_server_tests.cpp
+CMakeFiles/runTests.dir/tests/tcp_server_tests.cpp.o: CMakeFiles/runTests.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/yugam05/kvstore_project/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_6) "Building CXX object CMakeFiles/runTests.dir/tests/tcp_server_tests.cpp.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/runTests.dir/tests/tcp_server_tests.cpp.o -MF CMakeFiles/runTests.dir/tests/tcp_server_tests.cpp.o.d -o CMakeFiles/runTests.dir/tests/tcp_server_tests.cpp.o -c /home/yugam05/kvstore_project/tests/tcp_server_tests.cpp
+
+CMakeFiles/runTests.dir/tests/tcp_server_tests.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/runTests.dir/tests/tcp_server_tests.cpp.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/yugam05/kvstore_project/tests/tcp_server_tests.cpp > CMakeFiles/runTests.dir/tests/tcp_server_tests.cpp.i
+
+CMakeFiles/runTests.dir/tests/tcp_server_tests.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/runTests.dir/tests/tcp_server_tests.cpp.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/yugam05/kvstore_project/tests/tcp_server_tests.cpp -o CMakeFiles/runTests.dir/tests/tcp_server_tests.cpp.s
+
+CMakeFiles/runTests.dir/src/server.cpp.o: CMakeFiles/runTests.dir/flags.make
+CMakeFiles/runTests.dir/src/server.cpp.o: /home/yugam05/kvstore_project/src/server.cpp
+CMakeFiles/runTests.dir/src/server.cpp.o: CMakeFiles/runTests.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/yugam05/kvstore_project/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_7) "Building CXX object CMakeFiles/runTests.dir/src/server.cpp.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/runTests.dir/src/server.cpp.o -MF CMakeFiles/runTests.dir/src/server.cpp.o.d -o CMakeFiles/runTests.dir/src/server.cpp.o -c /home/yugam05/kvstore_project/src/server.cpp
+
+CMakeFiles/runTests.dir/src/server.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/runTests.dir/src/server.cpp.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/yugam05/kvstore_project/src/server.cpp > CMakeFiles/runTests.dir/src/server.cpp.i
+
+CMakeFiles/runTests.dir/src/server.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/runTests.dir/src/server.cpp.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/yugam05/kvstore_project/src/server.cpp -o CMakeFiles/runTests.dir/src/server.cpp.s
+
 # Object files for target runTests
 runTests_OBJECTS = \
 "CMakeFiles/runTests.dir/tests/kvstore_tests.cpp.o" \
 "CMakeFiles/runTests.dir/tests/concurrency_tests.cpp.o" \
 "CMakeFiles/runTests.dir/src/kvstore.cpp.o" \
-"CMakeFiles/runTests.dir/src/wal.cpp.o"
+"CMakeFiles/runTests.dir/src/wal.cpp.o" \
+"CMakeFiles/runTests.dir/tests/wal_recovery_test.cpp.o" \
+"CMakeFiles/runTests.dir/tests/tcp_server_tests.cpp.o" \
+"CMakeFiles/runTests.dir/src/server.cpp.o"
 
 # External object files for target runTests
 runTests_EXTERNAL_OBJECTS =
@@ -139,12 +184,15 @@ runTests: CMakeFiles/runTests.dir/tests/kvstore_tests.cpp.o
 runTests: CMakeFiles/runTests.dir/tests/concurrency_tests.cpp.o
 runTests: CMakeFiles/runTests.dir/src/kvstore.cpp.o
 runTests: CMakeFiles/runTests.dir/src/wal.cpp.o
+runTests: CMakeFiles/runTests.dir/tests/wal_recovery_test.cpp.o
+runTests: CMakeFiles/runTests.dir/tests/tcp_server_tests.cpp.o
+runTests: CMakeFiles/runTests.dir/src/server.cpp.o
 runTests: CMakeFiles/runTests.dir/build.make
 runTests: lib/libgtest.a
 runTests: lib/libgtest_main.a
 runTests: lib/libgtest.a
 runTests: CMakeFiles/runTests.dir/link.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/home/yugam05/kvstore_project/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_5) "Linking CXX executable runTests"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/home/yugam05/kvstore_project/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_8) "Linking CXX executable runTests"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/runTests.dir/link.txt --verbose=$(VERBOSE)
 
 # Rule to build all files generated by this target.

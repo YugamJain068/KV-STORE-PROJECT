@@ -17,8 +17,6 @@ void handle_client(int client_socket)
 {
     while (true)
     {
-        std::string start="> ";
-        send(client_socket,start.c_str(), start.size(), 0);
         char buffer[1024];
         int bytes_received = recv(client_socket, buffer, sizeof(buffer) - 1, 0);
         if (bytes_received <= 0)
@@ -54,7 +52,7 @@ void handle_client(int client_socket)
             {
                 std::lock_guard<std::mutex> lock(store_mutex);
                 store.put(key, value);
-                response = " added successfully.\n";
+                response = key + " added successfully.\n";
             }
         }
         else if (command == "GET")
@@ -158,8 +156,8 @@ void start_server(int port)
         std::string ip_address = inet_ntoa(client_addr.sin_addr);
         uint16_t client_port = ntohs(client_addr.sin_port);
         std::cout << "Client connected: " << ip_address << ":" << client_port << "\n";
-        
-        std::thread client_thread(handle_client,client_socket);
+
+        std::thread client_thread(handle_client, client_socket);
         client_thread.detach();
     }
     close(socket_fd);

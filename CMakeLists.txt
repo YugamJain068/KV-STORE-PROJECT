@@ -32,6 +32,9 @@ add_executable(runTests
     tests/concurrency_tests.cpp
     src/kvstore.cpp
     src/wal.cpp
+    tests/wal_recovery_test.cpp
+    tests/tcp_server_tests.cpp
+    src/server.cpp
 )
 
 # Link with GoogleTest (pthread only if needed)

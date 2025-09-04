@@ -163,12 +163,12 @@ CMakeFiles/runTests.dir/all: googletest/googletest/CMakeFiles/gtest.dir/all
 CMakeFiles/runTests.dir/all: googletest/googletest/CMakeFiles/gtest_main.dir/all
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/runTests.dir/build.make CMakeFiles/runTests.dir/depend
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/runTests.dir/build.make CMakeFiles/runTests.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/yugam05/kvstore_project/build/CMakeFiles --progress-num=15,16,17,18,19 "Built target runTests"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/yugam05/kvstore_project/build/CMakeFiles --progress-num=15,16,17,18,19,20,21,22 "Built target runTests"
 .PHONY : CMakeFiles/runTests.dir/all
 
 # Build rule for subdir invocation for target.
 CMakeFiles/runTests.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/yugam05/kvstore_project/build/CMakeFiles 9
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/yugam05/kvstore_project/build/CMakeFiles 12
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/runTests.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /home/yugam05/kvstore_project/build/CMakeFiles 0
 .PHONY : CMakeFiles/runTests.dir/rule

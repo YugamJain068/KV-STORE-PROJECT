@@ -330,6 +330,7 @@ src/server.o: src/server.cpp.o
 # target to build an object file
 src/server.cpp.o:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/kvstore.dir/build.make CMakeFiles/kvstore.dir/src/server.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runTests.dir/build.make CMakeFiles/runTests.dir/src/server.cpp.o
 .PHONY : src/server.cpp.o
 
 src/server.i: src/server.cpp.i
@@ -338,6 +339,7 @@ src/server.i: src/server.cpp.i
 # target to preprocess a source file
 src/server.cpp.i:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/kvstore.dir/build.make CMakeFiles/kvstore.dir/src/server.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runTests.dir/build.make CMakeFiles/runTests.dir/src/server.cpp.i
 .PHONY : src/server.cpp.i
 
 src/server.s: src/server.cpp.s
@@ -346,6 +348,7 @@ src/server.s: src/server.cpp.s
 # target to generate assembly for a file
 src/server.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/kvstore.dir/build.make CMakeFiles/kvstore.dir/src/server.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runTests.dir/build.make CMakeFiles/runTests.dir/src/server.cpp.s
 .PHONY : src/server.cpp.s
 
 src/wal.o: src/wal.cpp.o
@@ -423,6 +426,54 @@ tests/kvstore_tests.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/runTests.dir/build.make CMakeFiles/runTests.dir/tests/kvstore_tests.cpp.s
 .PHONY : tests/kvstore_tests.cpp.s
 
+tests/tcp_server_tests.o: tests/tcp_server_tests.cpp.o
+.PHONY : tests/tcp_server_tests.o
+
+# target to build an object file
+tests/tcp_server_tests.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runTests.dir/build.make CMakeFiles/runTests.dir/tests/tcp_server_tests.cpp.o
+.PHONY : tests/tcp_server_tests.cpp.o
+
+tests/tcp_server_tests.i: tests/tcp_server_tests.cpp.i
+.PHONY : tests/tcp_server_tests.i
+
+# target to preprocess a source file
+tests/tcp_server_tests.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runTests.dir/build.make CMakeFiles/runTests.dir/tests/tcp_server_tests.cpp.i
+.PHONY : tests/tcp_server_tests.cpp.i
+
+tests/tcp_server_tests.s: tests/tcp_server_tests.cpp.s
+.PHONY : tests/tcp_server_tests.s
+
+# target to generate assembly for a file
+tests/tcp_server_tests.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runTests.dir/build.make CMakeFiles/runTests.dir/tests/tcp_server_tests.cpp.s
+.PHONY : tests/tcp_server_tests.cpp.s
+
+tests/wal_recovery_test.o: tests/wal_recovery_test.cpp.o
+.PHONY : tests/wal_recovery_test.o
+
+# target to build an object file
+tests/wal_recovery_test.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runTests.dir/build.make CMakeFiles/runTests.dir/tests/wal_recovery_test.cpp.o
+.PHONY : tests/wal_recovery_test.cpp.o
+
+tests/wal_recovery_test.i: tests/wal_recovery_test.cpp.i
+.PHONY : tests/wal_recovery_test.i
+
+# target to preprocess a source file
+tests/wal_recovery_test.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runTests.dir/build.make CMakeFiles/runTests.dir/tests/wal_recovery_test.cpp.i
+.PHONY : tests/wal_recovery_test.cpp.i
+
+tests/wal_recovery_test.s: tests/wal_recovery_test.cpp.s
+.PHONY : tests/wal_recovery_test.s
+
+# target to generate assembly for a file
+tests/wal_recovery_test.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runTests.dir/build.make CMakeFiles/runTests.dir/tests/wal_recovery_test.cpp.s
+.PHONY : tests/wal_recovery_test.cpp.s
+
 # Help Target
 help:
 	@echo "The following are some of the valid targets for this Makefile:"
@@ -463,6 +514,12 @@ help:
 	@echo "... tests/kvstore_tests.o"
 	@echo "... tests/kvstore_tests.i"
 	@echo "... tests/kvstore_tests.s"
+	@echo "... tests/tcp_server_tests.o"
+	@echo "... tests/tcp_server_tests.i"
+	@echo "... tests/tcp_server_tests.s"
+	@echo "... tests/wal_recovery_test.o"
+	@echo "... tests/wal_recovery_test.i"
+	@echo "... tests/wal_recovery_test.s"
 .PHONY : help
 
 
