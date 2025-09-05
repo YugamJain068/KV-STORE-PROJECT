@@ -4,6 +4,7 @@
 #include <thread>
 #include <chrono>
 #include <sstream>
+#include "raft_node.h"
 
 int main()
 {
@@ -94,5 +95,6 @@ int main()
     //     }
     // }
 
-    start_server(8080);
+    // start_server(8080);
+    raftAlgorithm();
 }
