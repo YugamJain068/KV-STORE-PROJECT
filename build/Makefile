@@ -324,6 +324,30 @@ src/raft_node.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/kvstore.dir/build.make CMakeFiles/kvstore.dir/src/raft_node.cpp.s
 .PHONY : src/raft_node.cpp.s
 
+src/rpc_server.o: src/rpc_server.cpp.o
+.PHONY : src/rpc_server.o
+
+# target to build an object file
+src/rpc_server.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/kvstore.dir/build.make CMakeFiles/kvstore.dir/src/rpc_server.cpp.o
+.PHONY : src/rpc_server.cpp.o
+
+src/rpc_server.i: src/rpc_server.cpp.i
+.PHONY : src/rpc_server.i
+
+# target to preprocess a source file
+src/rpc_server.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/kvstore.dir/build.make CMakeFiles/kvstore.dir/src/rpc_server.cpp.i
+.PHONY : src/rpc_server.cpp.i
+
+src/rpc_server.s: src/rpc_server.cpp.s
+.PHONY : src/rpc_server.s
+
+# target to generate assembly for a file
+src/rpc_server.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/kvstore.dir/build.make CMakeFiles/kvstore.dir/src/rpc_server.cpp.s
+.PHONY : src/rpc_server.cpp.s
+
 src/server.o: src/server.cpp.o
 .PHONY : src/server.o
 
@@ -502,6 +526,9 @@ help:
 	@echo "... src/raft_node.o"
 	@echo "... src/raft_node.i"
 	@echo "... src/raft_node.s"
+	@echo "... src/rpc_server.o"
+	@echo "... src/rpc_server.i"
+	@echo "... src/rpc_server.s"
 	@echo "... src/server.o"
 	@echo "... src/server.i"
 	@echo "... src/server.s"
