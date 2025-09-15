@@ -1,8 +1,12 @@
 #ifndef RPCSERVER_H
 #define RPCSERVER_H
 
+#pragma once
+
 #include <vector>
 #include <string>
+
+struct RaftNode;
 
 struct RequestVoteRPC{
     int term;
@@ -30,8 +34,8 @@ struct AppendEntriesResponse {
     bool success;
 };
 
-void startRaftRPCServer(int port);
-void handle_node_client(int client_socket);
+void startRaftRPCServer(int port, RaftNode* node);
+void handle_node_client(int client_socket, RaftNode* node);
 std::string sendRPC(const std::string &targetIp, int targetPort, const std::string &jsonPayload);
 
 #endif

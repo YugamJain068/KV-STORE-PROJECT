@@ -2,6 +2,9 @@
 #include "persist_functions.h"
 #include <iostream>
 #include <thread>
+#include <nlohmann/json.hpp>
+
+using json = nlohmann::json;
 
 using Clock = std::chrono::steady_clock;
 
@@ -35,11 +38,14 @@ void start_election(std::shared_ptr<RaftNode> candidate, std::vector<std::shared
 
     for (int peerPort : candidate->peerRpcPorts)
     {
-        std::string rpcJson = "{ \"rpc\": \"RequestVote\", \"term\": " +
-                              std::to_string(candidate->currentTerm) +
-                              ", \"candidateId\": " + std::to_string(candidate->id) + " }";
+        nlohmann::json req = {
+            {"rpc", "RequestVote"},
+            {"term", candidate->currentTerm},
+            {"candidateId", candidate->id},
+            {"lastLogIndex", candidate->log.empty() ? -1 : (int)candidate->log.size() - 1},
+            {"lastLogTerm", candidate->log.empty() ? 0 : candidate->log.back().term}};
 
-        std::string response = sendRPC("127.0.0.1", peerPort, rpcJson);
+        std::string response = sendRPC("127.0.0.1", peerPort, req.dump());
         // For now just log it
         std::cout << "[Candidate " << candidate->id << "] got response from peer "
                   << peerPort << ": " << response << "\n";
@@ -58,12 +64,48 @@ void start_election(std::shared_ptr<RaftNode> candidate, std::vector<std::shared
             reset_timeout(node);
         for (int peerPort : candidate->peerRpcPorts)
         {
-            std::string heartbeat = "{ \"rpc\": \"AppendEntries\", \"term\": " +
-                                    std::to_string(candidate->currentTerm) + " }";
-            sendRPC("127.0.0.1", peerPort, heartbeat);
+            json heartbeat = {
+                {"rpc", "AppendEntries"},
+                {"term", candidate->currentTerm},
+                {"leaderId", candidate->id},
+                {"prevLogIndex", candidate->log.size() - 1},
+                {"prevLogTerm", candidate->log.empty() ? 0 : candidate->log.back().term},
+                {"entries", json::array()}, // empty = heartbeat
+                {"leaderCommit", candidate->commitIndex}};
+            sendRPC("127.0.0.1", peerPort, heartbeat.dump());
         }
+        persistMetadata(candidate);
     }
 }
+
+void RaftNode::handleClientCommand(const std::string command) {
+    if (state != NodeState::LEADER) {
+        std::cout << "[Node " << id << "] Rejecting client command (not leader)\n";
+        return;
+    }
+
+    logEntry entry{currentTerm, command};
+    log.push_back(entry);
+    std::cout << "[Leader " << id << "] Appended command to log: " << command << "\n";
+
+    for (auto port : peerRpcPorts) {
+        nlohmann::json msg = {
+            {"rpc", "AppendEntries"},
+            {"term", currentTerm},
+            {"leaderId", id},
+            {"prevLogIndex", (int)log.size() - 2},   // previous entry index
+            {"prevLogTerm", log.size() > 1 ? log[log.size() - 2].term : 0},
+            {"entries", {{{"term", currentTerm}, {"command", command}}}},
+            {"leaderCommit", commitIndex}
+        };
+        std::string resp = sendRPC("127.0.0.1", port, msg.dump());
+        std::cout << "[Leader " << id << "] got AppendEntries reply from peer "
+                  << port << ": " << resp << "\n";
+    }
+
+    persistMetadata(shared_from_this());
+}
+
 
 void election_timer(std::shared_ptr<RaftNode> node, std::vector<std::shared_ptr<RaftNode>> &nodes)
 {
@@ -114,6 +156,22 @@ void raftAlgorithm()
     }
 
     std::this_thread::sleep_for(std::chrono::seconds(5));
+
+    std::shared_ptr<RaftNode> leader;
+    for (auto &node : nodes)
+    {
+        if (node->state == NodeState::LEADER)
+        {
+            leader = node;
+            break;
+        }
+    }
+
+    if (leader)
+    {
+        leader->handleClientCommand("PUT key=value");
+        leader->handleClientCommand("DELETE key");
+    }
 
     for (auto &node : nodes)
         node->stopTimer = true;

@@ -7,8 +7,13 @@
 #include <errno.h>
 #include <iostream>
 #include <thread>
+#include <nlohmann/json.hpp>
+#include "raft_node.h"
 
-std::string sendRPC(const std::string &targetIp, int targetPort, const std::string &jsonPayload){
+extern std::vector<std::shared_ptr<RaftNode>> nodes;
+
+std::string sendRPC(const std::string &targetIp, int targetPort, const std::string &jsonPayload)
+{
     int sock = socket(AF_INET, SOCK_STREAM, 0);
     if (sock < 0)
     {
@@ -44,7 +49,7 @@ std::string sendRPC(const std::string &targetIp, int targetPort, const std::stri
     return response;
 }
 
-void handle_node_client(int client_socket)
+void handle_node_client(int client_socket, RaftNode *node)
 {
     char buffer[2048];
 
@@ -56,12 +61,68 @@ void handle_node_client(int client_socket)
     }
     buffer[bytes_received] = '\0';
     std::string request(buffer);
+
     std::cout << "[RPC Received] " << request << "\n";
-    std::string response = R"({ "status": "ok" })";
-    send(client_socket, response.c_str(), response.size(), 0);
+
+    nlohmann::json response;
+
+    try
+    {
+        auto j = nlohmann::json::parse(request);
+        std::string rpcType = j["rpc"];
+
+        if (rpcType == "RequestVote")
+        {
+            // Extract fields
+            int term = j.value("term", 0);
+            int candidateId = j.value("candidateId", -1);
+            int lastLogIndex = j.value("lastLogIndex", -1);
+            int lastLogTerm = j.value("lastLogTerm", 0);
+
+            // TODO: Apply Raft voting rules here
+            bool voteGranted = true; // dummy for now
+
+            response = {
+                {"term", term},
+                {"voteGranted", voteGranted}};
+        }
+        else if (rpcType == "AppendEntries")
+        {
+            // Extract fields
+            int term = j.value("term", 0); // use .value(key, default) to be safe
+            int leaderId = j.value("leaderId", -1);
+            int prevLogIndex = j.value("prevLogIndex", -1);
+            int prevLogTerm = j.value("prevLogTerm", 0);
+            auto entries = j.value("entries", nlohmann::json::array()); // default empty array
+            int leaderCommit = j.value("leaderCommit", 0);
+
+            // TODO: Apply Raft log consistency checks here
+            bool success = true; // dummy for now
+
+            response = {
+                {"term", term},
+                {"success", success}};
+        }
+        else
+        {
+            response = {{"error", "Unknown RPC"}};
+        }
+    }
+    catch (std::exception &e)
+    {
+        std::cerr << "JSON parse error: " << e.what() << "\n";
+        response = {{"error", "Invalid JSON"}};
+    }
+
+    // Send JSON back to client
+    std::string respStr = response.dump();
+    send(client_socket, respStr.c_str(), respStr.size(), 0);
+    std::cout << "[RPC Reply] " << respStr << "\n";
+
+    close(client_socket);
 }
 
-void startRaftRPCServer(int port)
+void startRaftRPCServer(int port, RaftNode *node)
 {
     int socket_fd = socket(AF_INET, SOCK_STREAM, 0);
     if (socket_fd < 0)
@@ -106,7 +167,8 @@ void startRaftRPCServer(int port)
         uint16_t client_port = ntohs(client_addr.sin_port);
         std::cout << "Client connected: " << ip_address << ":" << client_port << "\n";
 
-        std::thread client_thread(handle_node_client, client_socket);
+        std::thread client_thread([client_socket, node]()
+                                  { handle_node_client(client_socket, node); });
         client_thread.detach();
     }
     close(socket_fd);

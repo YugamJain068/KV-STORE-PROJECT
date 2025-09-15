@@ -2,6 +2,9 @@
 #define PERSISTFUNCTION_H
 #include <nlohmann/json.hpp>
 #include <fstream>
+#include "raft_node.h"
+
+
 
 void persistMetadata(std::shared_ptr<RaftNode> node) {
     nlohmann::json j;
@@ -21,7 +24,7 @@ void loadMetadata(std::shared_ptr<RaftNode> node) {
 
     node->currentTerm = j.value("currentTerm", 0);
     node->votedFor = j.value("votedFor", -1);
-    node->log = j.value("logEntries", std::vector<std::string>{});
+    node->log = j.value("logEntries", std::vector<logEntry>{});
 }
 
 #endif

@@ -11,6 +11,9 @@
 #include<atomic>
 #include<thread>
 #include "rpc_server.h"
+#include <nlohmann/json.hpp>
+#include <memory>
+
 
 
 using Clock = std::chrono::steady_clock;
@@ -21,12 +24,28 @@ enum class NodeState {
     LEADER
 };
 
-struct RaftNode{
+struct logEntry{
+    int term;
+    std::string command;
+};
+
+inline void to_json(nlohmann::json &j, const logEntry &e) {
+    j = nlohmann::json{{"term", e.term}, {"command", e.command}};
+}
+
+inline void from_json(const nlohmann::json &j, logEntry &e) {
+    j.at("term").get_to(e.term);
+    j.at("command").get_to(e.command);
+}
+
+
+class RaftNode : public std::enable_shared_from_this<RaftNode>{
+    public:
     int id;
     NodeState state = NodeState::FOLLOWER;
     int currentTerm=0;
     int votedFor=-1;
-    std::vector<std::string>log;
+    std::vector<logEntry>log;
     int commitIndex=0;
     int lastApplied=0;
     std::chrono::milliseconds electionTimeout{150};
@@ -46,7 +65,7 @@ struct RaftNode{
 
         // Start RPC server thread
         rpcServerThread = std::thread([this] {
-            startRaftRPCServer(this->rpcPort);
+            startRaftRPCServer(this->rpcPort,this);
         });
     }
     ~RaftNode() {
@@ -54,7 +73,11 @@ struct RaftNode{
             rpcServerThread.join();
         }
     }
+
+    void handleClientCommand(const std::string commmand);
 };
+
+
 
 void raftAlgorithm();
 void reset_timeout(std::shared_ptr<RaftNode> node);
