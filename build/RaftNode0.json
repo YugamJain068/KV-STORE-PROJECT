@@ -1,14 +1,5 @@
 {
-    "currentTerm": 35,
-    "logEntries": [
-        {
-            "command": "PUT key=value",
-            "term": 35
-        },
-        {
-            "command": "DELETE key",
-            "term": 35
-        }
-    ],
-    "votedFor": 0
+    "currentTerm": 45,
+    "logEntries": [],
+    "votedFor": 1
 }

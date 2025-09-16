@@ -3,6 +3,8 @@ file(REMOVE_RECURSE
   "CMakeFiles/kvstore.dir/src/kvstore.cpp.o.d"
   "CMakeFiles/kvstore.dir/src/main.cpp.o"
   "CMakeFiles/kvstore.dir/src/main.cpp.o.d"
+  "CMakeFiles/kvstore.dir/src/persist_functions.cpp.o"
+  "CMakeFiles/kvstore.dir/src/persist_functions.cpp.o.d"
   "CMakeFiles/kvstore.dir/src/raft_node.cpp.o"
   "CMakeFiles/kvstore.dir/src/raft_node.cpp.o.d"
   "CMakeFiles/kvstore.dir/src/rpc_server.cpp.o"

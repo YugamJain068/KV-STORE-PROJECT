@@ -5,6 +5,8 @@
 
 #include <vector>
 #include <string>
+#include <nlohmann/json.hpp>
+#include "raft_node.h"
 
 struct RaftNode;
 
@@ -20,22 +22,28 @@ struct AppendEntriesRPC{
     int leaderId;
     int prevLogIndex;
     int prevLogTerm;
-    std::vector<std::string>entries;
+    std::vector<logEntry> entries;
     int leaderCommit;
 };
+
+void to_json(nlohmann::json &j, const RequestVoteRPC &r) ;
+void to_json(nlohmann::json &j, const AppendEntriesRPC &r) ;
 
 struct RequestVoteResponse {
     int term;
     bool voteGranted;
 };
-
 struct AppendEntriesResponse {
     int term;
     bool success;
 };
 
-void startRaftRPCServer(int port, RaftNode* node);
-void handle_node_client(int client_socket, RaftNode* node);
+void from_json(const nlohmann::json &j, RequestVoteResponse &r);
+void from_json(const nlohmann::json &j, AppendEntriesResponse &r) ;
+
+
+void startRaftRPCServer(int port, std::shared_ptr<RaftNode> node);
+void handle_node_client(int client_socket, std::shared_ptr<RaftNode> node);
 std::string sendRPC(const std::string &targetIp, int targetPort, const std::string &jsonPayload);
 
 #endif

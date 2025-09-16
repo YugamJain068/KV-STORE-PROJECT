@@ -4,7 +4,7 @@
 # compile CXX with /usr/bin/c++
 CXX_DEFINES = 
 
-CXX_INCLUDES = -isystem /home/yugam05/kvstore_project/googletest/googlemock/include -isystem /home/yugam05/kvstore_project/googletest/googlemock -isystem /home/yugam05/kvstore_project/googletest/googletest/include -isystem /home/yugam05/kvstore_project/googletest/googletest
+CXX_INCLUDES = -isystem /home/yugam05/kvstore_project/include -isystem /home/yugam05/kvstore_project/googletest/googletest/include -isystem /home/yugam05/kvstore_project/googletest/googletest -isystem /home/yugam05/kvstore_project/googletest/googlemock/include -isystem /home/yugam05/kvstore_project/googletest/googlemock
 
 CXX_FLAGS = -g -std=c++17 -Wall -Wshadow -Wundef -Wno-error=dangling-else -DGTEST_HAS_PTHREAD=1 -fexceptions -Wextra -Wno-unused-parameter -Wno-missing-field-initializers
 

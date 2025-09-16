@@ -300,12 +300,40 @@ src/main.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/kvstore.dir/build.make CMakeFiles/kvstore.dir/src/main.cpp.s
 .PHONY : src/main.cpp.s
 
+src/persist_functions.o: src/persist_functions.cpp.o
+.PHONY : src/persist_functions.o
+
+# target to build an object file
+src/persist_functions.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/kvstore.dir/build.make CMakeFiles/kvstore.dir/src/persist_functions.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runTests.dir/build.make CMakeFiles/runTests.dir/src/persist_functions.cpp.o
+.PHONY : src/persist_functions.cpp.o
+
+src/persist_functions.i: src/persist_functions.cpp.i
+.PHONY : src/persist_functions.i
+
+# target to preprocess a source file
+src/persist_functions.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/kvstore.dir/build.make CMakeFiles/kvstore.dir/src/persist_functions.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runTests.dir/build.make CMakeFiles/runTests.dir/src/persist_functions.cpp.i
+.PHONY : src/persist_functions.cpp.i
+
+src/persist_functions.s: src/persist_functions.cpp.s
+.PHONY : src/persist_functions.s
+
+# target to generate assembly for a file
+src/persist_functions.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/kvstore.dir/build.make CMakeFiles/kvstore.dir/src/persist_functions.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runTests.dir/build.make CMakeFiles/runTests.dir/src/persist_functions.cpp.s
+.PHONY : src/persist_functions.cpp.s
+
 src/raft_node.o: src/raft_node.cpp.o
 .PHONY : src/raft_node.o
 
 # target to build an object file
 src/raft_node.cpp.o:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/kvstore.dir/build.make CMakeFiles/kvstore.dir/src/raft_node.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runTests.dir/build.make CMakeFiles/runTests.dir/src/raft_node.cpp.o
 .PHONY : src/raft_node.cpp.o
 
 src/raft_node.i: src/raft_node.cpp.i
@@ -314,6 +342,7 @@ src/raft_node.i: src/raft_node.cpp.i
 # target to preprocess a source file
 src/raft_node.cpp.i:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/kvstore.dir/build.make CMakeFiles/kvstore.dir/src/raft_node.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runTests.dir/build.make CMakeFiles/runTests.dir/src/raft_node.cpp.i
 .PHONY : src/raft_node.cpp.i
 
 src/raft_node.s: src/raft_node.cpp.s
@@ -322,6 +351,7 @@ src/raft_node.s: src/raft_node.cpp.s
 # target to generate assembly for a file
 src/raft_node.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/kvstore.dir/build.make CMakeFiles/kvstore.dir/src/raft_node.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runTests.dir/build.make CMakeFiles/runTests.dir/src/raft_node.cpp.s
 .PHONY : src/raft_node.cpp.s
 
 src/rpc_server.o: src/rpc_server.cpp.o
@@ -330,6 +360,7 @@ src/rpc_server.o: src/rpc_server.cpp.o
 # target to build an object file
 src/rpc_server.cpp.o:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/kvstore.dir/build.make CMakeFiles/kvstore.dir/src/rpc_server.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runTests.dir/build.make CMakeFiles/runTests.dir/src/rpc_server.cpp.o
 .PHONY : src/rpc_server.cpp.o
 
 src/rpc_server.i: src/rpc_server.cpp.i
@@ -338,6 +369,7 @@ src/rpc_server.i: src/rpc_server.cpp.i
 # target to preprocess a source file
 src/rpc_server.cpp.i:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/kvstore.dir/build.make CMakeFiles/kvstore.dir/src/rpc_server.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runTests.dir/build.make CMakeFiles/runTests.dir/src/rpc_server.cpp.i
 .PHONY : src/rpc_server.cpp.i
 
 src/rpc_server.s: src/rpc_server.cpp.s
@@ -346,6 +378,7 @@ src/rpc_server.s: src/rpc_server.cpp.s
 # target to generate assembly for a file
 src/rpc_server.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/kvstore.dir/build.make CMakeFiles/kvstore.dir/src/rpc_server.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runTests.dir/build.make CMakeFiles/runTests.dir/src/rpc_server.cpp.s
 .PHONY : src/rpc_server.cpp.s
 
 src/server.o: src/server.cpp.o
@@ -450,6 +483,30 @@ tests/kvstore_tests.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/runTests.dir/build.make CMakeFiles/runTests.dir/tests/kvstore_tests.cpp.s
 .PHONY : tests/kvstore_tests.cpp.s
 
+tests/raft_tests.o: tests/raft_tests.cpp.o
+.PHONY : tests/raft_tests.o
+
+# target to build an object file
+tests/raft_tests.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runTests.dir/build.make CMakeFiles/runTests.dir/tests/raft_tests.cpp.o
+.PHONY : tests/raft_tests.cpp.o
+
+tests/raft_tests.i: tests/raft_tests.cpp.i
+.PHONY : tests/raft_tests.i
+
+# target to preprocess a source file
+tests/raft_tests.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runTests.dir/build.make CMakeFiles/runTests.dir/tests/raft_tests.cpp.i
+.PHONY : tests/raft_tests.cpp.i
+
+tests/raft_tests.s: tests/raft_tests.cpp.s
+.PHONY : tests/raft_tests.s
+
+# target to generate assembly for a file
+tests/raft_tests.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runTests.dir/build.make CMakeFiles/runTests.dir/tests/raft_tests.cpp.s
+.PHONY : tests/raft_tests.cpp.s
+
 tests/tcp_server_tests.o: tests/tcp_server_tests.cpp.o
 .PHONY : tests/tcp_server_tests.o
 
@@ -523,6 +580,9 @@ help:
 	@echo "... src/main.o"
 	@echo "... src/main.i"
 	@echo "... src/main.s"
+	@echo "... src/persist_functions.o"
+	@echo "... src/persist_functions.i"
+	@echo "... src/persist_functions.s"
 	@echo "... src/raft_node.o"
 	@echo "... src/raft_node.i"
 	@echo "... src/raft_node.s"
@@ -541,6 +601,9 @@ help:
 	@echo "... tests/kvstore_tests.o"
 	@echo "... tests/kvstore_tests.i"
 	@echo "... tests/kvstore_tests.s"
+	@echo "... tests/raft_tests.o"
+	@echo "... tests/raft_tests.i"
+	@echo "... tests/raft_tests.s"
 	@echo "... tests/tcp_server_tests.o"
 	@echo "... tests/tcp_server_tests.i"
 	@echo "... tests/tcp_server_tests.s"

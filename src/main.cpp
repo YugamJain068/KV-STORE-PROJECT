@@ -9,15 +9,13 @@
 
 int main()
 {
-    KVStore store;
+    // KVStore store;
 
-    std::thread kvThread(start_server, 4000);
+    // std::thread kvThread(start_server, 4000);
     std::thread raftAlgoThread(raftAlgorithm);
     
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
-    sendRPC("127.0.0.1", 5001, R"({ "rpc": "RequestVote", "term": 1, "candidateId": 0 })");
-
-    kvThread.join();
+    // kvThread.join();
     raftAlgoThread.join();
 }
