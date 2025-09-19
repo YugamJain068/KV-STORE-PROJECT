@@ -3,6 +3,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <unistd.h>
+#include <fcntl.h>
 #include <string>
 #include <errno.h>
 #include <iostream>
@@ -56,6 +57,12 @@ std::string sendRPC(const std::string &targetIp, int targetPort, const std::stri
             return "";
         }
 
+        struct timeval tv{};
+        tv.tv_sec = 1;
+        tv.tv_usec = 0;
+        setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, (const char *)&tv, sizeof(tv));
+        setsockopt(sock, SOL_SOCKET, SO_SNDTIMEO, (const char *)&tv, sizeof(tv));
+
         struct sockaddr_in server_addr{};
         server_addr.sin_family = AF_INET;
         server_addr.sin_port = htons(targetPort);
@@ -91,9 +98,14 @@ std::string sendRPC(const std::string &targetIp, int targetPort, const std::stri
 }
 #endif
 
-
 void handle_node_client(int client_socket, std::shared_ptr<RaftNode> node)
 {
+    if (node->stopRPC)
+    {
+        close(client_socket);
+        return;
+    }
+
     char buffer[2048];
 
     int bytes_received = recv(client_socket, buffer, sizeof(buffer) - 1, 0);
@@ -131,9 +143,7 @@ void handle_node_client(int client_socket, std::shared_ptr<RaftNode> node)
             {
                 if (term > node->currentTerm)
                 {
-                    node->currentTerm = term;
-                    node->state = NodeState::FOLLOWER;
-                    node->votedFor = -1;
+                    node->becomeFollower(term);
                 }
                 bool notVotedYet = (node->votedFor == -1 || node->votedFor == candidateId);
                 int myLastIndex = static_cast<int>(node->log.size()) - 1;
@@ -156,21 +166,116 @@ void handle_node_client(int client_socket, std::shared_ptr<RaftNode> node)
         }
         else if (rpcType == "AppendEntries")
         {
-            // Extract fields
-            int term = j.value("term", 0); // use .value(key, default) to be safe
+            int term = j.value("term", 0);
             int leaderId = j.value("leaderId", -1);
             int prevLogIndex = j.value("prevLogIndex", -1);
             int prevLogTerm = j.value("prevLogTerm", 0);
-            auto entries = j.value("entries", nlohmann::json::array()); // default empty array
+            auto entries = j.value("entries", nlohmann::json::array());
             int leaderCommit = j.value("leaderCommit", 0);
 
-            // TODO: Apply Raft log consistency checks here
-            bool success = true; // dummy for now
+            bool success = false;
+
+            if (term < node->currentTerm)
+            {
+                // Stale leader
+                success = false;
+                std::cout << "[Node " << node->id << "] Rejected stale AppendEntries from term "
+                          << term << " (current: " << node->currentTerm << ")\n";
+            }
+            else
+            {
+                bool shouldResetTimeout = (term >= node->currentTerm);
+
+                if (term > node->currentTerm || node->state == NodeState::CANDIDATE)
+                {
+                    std::cout << "[Node " << node->id << "] Stepping down due to AppendEntries from term "
+                              << term << "\n";
+                    node->becomeFollower(term);
+                    shouldResetTimeout = true;
+                }
+
+                if (shouldResetTimeout)
+                {
+                    std::lock_guard<std::mutex> lock(node->mtx);
+                    node->lastHeartbeatTimePoint = Clock::now();
+                    node->electionTimeout = std::chrono::milliseconds(2000 + rand() % 2000);
+                    node->cv.notify_all();
+
+                    std::cout << "[Node " << node->id << "] Heartbeat received from Leader "
+                              << leaderId << ", timeout reset to "
+                              << node->electionTimeout.count() << "ms\n";
+                }
+
+                {
+                    std::lock_guard<std::mutex> lock(node->mtx);
+
+                    // Log consistency check
+                    if (prevLogIndex >= 0)
+                    {
+                        if (prevLogIndex >= (int)node->log.size() ||
+                            node->log[prevLogIndex].term != prevLogTerm)
+                        {
+                            success = false;
+                            std::cout << "[Node " << node->id << "] Log inconsistency: prevLogIndex="
+                                      << prevLogIndex << ", myLogSize=" << node->log.size() << "\n";
+                        }
+                        else
+                        {
+                            success = true;
+                        }
+                    }
+                    else
+                    {
+                        success = true; // no prev entry to check
+                    }
+
+                    // Append new entries if consistent
+                    if (success && !entries.empty())
+                    {
+                        int insertIndex = prevLogIndex + 1;
+
+                        if (insertIndex < (int)node->log.size())
+                        {
+                            node->log.erase(node->log.begin() + insertIndex, node->log.end());
+                            std::cout << "[Node " << node->id << "] Deleted conflicting entries from index "
+                                      << insertIndex << "\n";
+                        }
+
+                        for (auto &entryJson : entries)
+                        {
+                            logEntry e = entryJson.get<logEntry>();
+                            node->log.push_back(e);
+                            std::cout << "[Node " << node->id << "] Appended entry: " << e.command << "\n";
+                        }
+                    }
+                    
+                    persistMetadata(node);
+
+                    // Update commit index
+                    if (success && leaderCommit > node->commitIndex)
+                    {
+                        int oldCommitIndex = node->commitIndex;
+                        node->commitIndex = std::min(leaderCommit, (int)node->log.size() - 1);
+                        std::cout << "[Node " << node->id << "] Commit index updated from "
+                                  << oldCommitIndex << " to " << node->commitIndex << "\n";
+
+                        while (node->lastApplied < node->commitIndex && !node->shutdownRequested.load())
+                        {
+                            node->lastApplied++;
+                            node->applyToStateMachine(node->log[node->lastApplied].command);
+                        }
+                    }
+                }
+            }
 
             response = {
-                {"term", term},
+                {"term", node->currentTerm},
                 {"success", success}};
+
+            std::cout << "[Node " << node->id << "] AppendEntries response: success="
+                      << success << ", term=" << node->currentTerm << "\n";
         }
+
         else
         {
             response = {{"error", "Unknown RPC"}};
@@ -193,29 +298,35 @@ void handle_node_client(int client_socket, std::shared_ptr<RaftNode> node)
 void startRaftRPCServer(int port, std::shared_ptr<RaftNode> node)
 {
     int socket_fd = socket(AF_INET, SOCK_STREAM, 0);
-    if (socket_fd < 0) {
-        std::cerr << "Failed to create socket\n";
+    if (socket_fd < 0)
+    {
+        std::cerr << "Socket creation failed\n";
         return;
     }
 
     node->serverSocket = socket_fd;
 
-    // Reuse address
     int opt = 1;
     setsockopt(socket_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+
+    // Non-blocking mode
+    int flags = fcntl(socket_fd, F_GETFL, 0);
+    fcntl(socket_fd, F_SETFL, flags | O_NONBLOCK);
 
     struct sockaddr_in server_addr{};
     server_addr.sin_family = AF_INET;
     server_addr.sin_port = htons(port);
     server_addr.sin_addr.s_addr = INADDR_ANY;
 
-    if (bind(socket_fd, (struct sockaddr*)&server_addr, sizeof(server_addr)) < 0) {
+    if (bind(socket_fd, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0)
+    {
         std::cerr << "Bind failed\n";
         close(socket_fd);
         return;
     }
 
-    if (listen(socket_fd, 5) < 0) {
+    if (listen(socket_fd, 5) < 0)
+    {
         std::cerr << "Listen failed\n";
         close(socket_fd);
         return;
@@ -223,37 +334,27 @@ void startRaftRPCServer(int port, std::shared_ptr<RaftNode> node)
 
     std::cout << "RPC Server started on port " << port << "\n";
 
-    // Set accept timeout (1 second)
-    struct timeval tv{};
-    tv.tv_sec = 1;
-    tv.tv_usec = 0;
-    setsockopt(socket_fd, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof(tv));
-
     while (!node->stopRPC)
     {
         struct sockaddr_in client_addr{};
         socklen_t client_len = sizeof(client_addr);
+        int client_socket = accept(socket_fd, (struct sockaddr *)&client_addr, &client_len);
 
-        int client_socket = accept(socket_fd, (struct sockaddr*)&client_addr, &client_len);
-        if (client_socket < 0) {
-            if (errno == EWOULDBLOCK || errno == EAGAIN || errno == EINTR)
-                continue;  // timeout or interrupted → check stopRPC
+        if (client_socket < 0)
+        {
+            if (errno == EWOULDBLOCK || errno == EAGAIN)
+            {
+                std::this_thread::sleep_for(std::chrono::milliseconds(50));
+                continue;
+            }
             std::cerr << "Accept failed\n";
             continue;
         }
 
-        std::string ip_address = inet_ntoa(client_addr.sin_addr);
-        uint16_t client_port = ntohs(client_addr.sin_port);
-        std::cout << "Client connected: " << ip_address << ":" << client_port << "\n";
-
-        // Launch client handler in detached thread
-        std::thread([client_socket, node]() {
-            handle_node_client(client_socket, node);
-            close(client_socket); // close client socket after handling
-        }).detach();
+        std::thread(handle_node_client, client_socket, node).detach();
     }
 
-    close(socket_fd); // clean up listening socket
+    close(socket_fd);
     node->serverSocket = -1;
     std::cout << "RPC Server on port " << port << " stopped.\n";
 }

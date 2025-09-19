@@ -1,5 +1,76 @@
 {
-    "currentTerm": 45,
-    "logEntries": [],
-    "votedFor": 1
+    "currentTerm": 8,
+    "logEntries": [
+        {
+            "command": "PUT key=value100",
+            "index": 0,
+            "term": 2
+        },
+        {
+            "command": "DELETE key",
+            "index": 1,
+            "term": 2
+        },
+        {
+            "command": "PUT key=value100",
+            "index": 2,
+            "term": 3
+        },
+        {
+            "command": "DELETE key",
+            "index": 3,
+            "term": 3
+        },
+        {
+            "command": "PUT key=value100",
+            "index": 4,
+            "term": 4
+        },
+        {
+            "command": "DELETE key",
+            "index": 5,
+            "term": 4
+        },
+        {
+            "command": "PUT key=value100",
+            "index": 6,
+            "term": 5
+        },
+        {
+            "command": "DELETE key",
+            "index": 7,
+            "term": 5
+        },
+        {
+            "command": "PUT key=value100",
+            "index": 8,
+            "term": 6
+        },
+        {
+            "command": "DELETE key",
+            "index": 9,
+            "term": 6
+        },
+        {
+            "command": "PUT key=value100",
+            "index": 10,
+            "term": 7
+        },
+        {
+            "command": "DELETE key",
+            "index": 11,
+            "term": 7
+        },
+        {
+            "command": "PUT key=value100",
+            "index": 12,
+            "term": 8
+        },
+        {
+            "command": "DELETE key",
+            "index": 13,
+            "term": 8
+        }
+    ],
+    "votedFor": 0
 }
