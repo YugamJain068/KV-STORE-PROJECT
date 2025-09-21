@@ -12,6 +12,19 @@ using json = nlohmann::json;
 
 using Clock = std::chrono::steady_clock;
 
+KVStore store;
+std::mutex store_mutex;
+std::atomic<bool> raftShutdownRequested(false);
+
+void requestRaftShutdown() {
+    raftShutdownRequested.store(true);
+    
+}
+
+bool isRaftShutdownRequested() {
+    return raftShutdownRequested.load();
+}
+
 RaftNode::RaftNode(int nodeId_, int port, const std::vector<int> &peers)
     : id(nodeId_), rpcPort(port), peerRpcPorts(peers)
 {
@@ -23,7 +36,7 @@ RaftNode::RaftNode(int nodeId_, int port, const std::vector<int> &peers)
 
 void RaftNode::start()
 {
-    auto self = shared_from_this(); // now safe, must be called on a shared_ptr-managed object
+    auto self = shared_from_this();
     rpcServerThread = std::thread([self]()
                                   { startRaftRPCServer(self->rpcPort, self); });
 }
@@ -33,7 +46,7 @@ RaftNode::~RaftNode()
     if (shutdownRequested.exchange(true))
     {
         std::cout << "[Node " << id << "] Already shutting down, skipping\n";
-        return; // Already shutting down
+        return;
     }
     else
     {
@@ -44,7 +57,7 @@ RaftNode::~RaftNode()
 
 void RaftNode::shutdownNode()
 {
-    // Set shutdown flags FIRST
+
     {
         std::lock_guard<std::mutex> lock(mtx);
 
@@ -55,10 +68,8 @@ void RaftNode::shutdownNode()
 
     std::cout << "[Node " << id << "] Starting shutdown...\n";
 
-    // Wake up ALL waiting threads
     cv.notify_all();
 
-    // Close socket to unblock RPC server
     if (serverSocket != -1)
     {
         shutdown(serverSocket, SHUT_RDWR);
@@ -68,7 +79,7 @@ void RaftNode::shutdownNode()
 
     try
     {
-        // 1. Stop heartbeat thread first
+
         if (heartbeatThread.joinable())
         {
             std::cout << "[Node " << id << "] Joining heartbeat thread...\n";
@@ -76,7 +87,6 @@ void RaftNode::shutdownNode()
             std::cout << "[Node " << id << "] Heartbeat thread joined\n";
         }
 
-        // 2. Stop RPC server thread
         if (rpcServerThread.joinable())
         {
             std::cout << "[Node " << id << "] Joining RPC server thread...\n";
@@ -105,7 +115,6 @@ void RaftNode::becomeFollower(int newTerm)
         state = NodeState::FOLLOWER;
         votedFor = -1;
 
-        // stop heartbeats if running
         runningHeartbeats = false;
     }
 
@@ -125,11 +134,11 @@ void reset_timeout(std::shared_ptr<RaftNode> node)
     }
 
     node->lastHeartbeatTimePoint = Clock::now();
-    // **Generate new random timeout each time to prevent synchronized elections**
+
     node->electionTimeout = std::chrono::milliseconds(2000 + rand() % 2000);
     node->cv.notify_all();
-    
-    std::cout << "[Node " << node->id << "] Timeout reset, new timeout: " 
+
+    std::cout << "[Node " << node->id << "] Timeout reset, new timeout: "
               << node->electionTimeout.count() << "ms\n";
 }
 
@@ -152,24 +161,24 @@ void send_heartbeats(std::shared_ptr<RaftNode> leader, std::vector<std::shared_p
                 {
                     int nextIdx = leader->nextIndex[peerIdx];
                     int prevIndex = nextIdx - 1;
-                    int prevTerm = (prevIndex >= 0 && prevIndex < (int)leader->log.size()) ? 
-                                   leader->log[prevIndex].term : 0;
+                    int prevTerm = (prevIndex >= 0 && prevIndex < (int)leader->log.size()) ? leader->log[prevIndex].term : 0;
 
                     json entries = json::array();
-                    if (nextIdx < (int)leader->log.size()) {
-                        for (int i = nextIdx; i < (int)leader->log.size(); i++) {
+                    if (nextIdx < (int)leader->log.size())
+                    {
+                        for (int i = nextIdx; i < (int)leader->log.size(); i++)
+                        {
                             entries.push_back(leader->log[i]);
                         }
                     }
 
                     AppendEntriesRPC heartbeat{
-                        leader->currentTerm, 
-                        leader->id, 
-                        prevIndex, 
-                        prevTerm, 
-                        entries, 
-                        leader->commitIndex
-                    };
+                        leader->currentTerm,
+                        leader->id,
+                        prevIndex,
+                        prevTerm,
+                        entries,
+                        leader->commitIndex};
 
                     std::string responseStr = sendRPC("127.0.0.1", peerPort, nlohmann::json(heartbeat).dump());
 
@@ -194,15 +203,14 @@ void send_heartbeats(std::shared_ptr<RaftNode> leader, std::vector<std::shared_p
                             leader->state = NodeState::FOLLOWER;
                             leader->votedFor = -1;
                             leader->runningHeartbeats = false;
-                            
-                            // **FIX: Reset timeout when stepping down**
+
                             leader->lastHeartbeatTimePoint = Clock::now();
                         }
-                        leader->cv.notify_all(); // Wake up election timer
+                        leader->cv.notify_all();
                         persistMetadata(leader);
                         return;
                     }
-                    
+
                     if (resp.success && !entries.empty())
                     {
                         leader->nextIndex[peerIdx] = leader->log.size();
@@ -226,8 +234,6 @@ void send_heartbeats(std::shared_ptr<RaftNode> leader, std::vector<std::shared_p
                 break;
             }
 
-            // **FIX: Increase heartbeat frequency to prevent timeouts**
-            // Send heartbeats more frequently (every 200ms instead of 50ms for better reliability)
             std::this_thread::sleep_for(std::chrono::milliseconds(200));
         }
     }
@@ -258,7 +264,7 @@ void start_election(std::shared_ptr<RaftNode> candidate, std::vector<std::shared
 
     for (int peerPort : candidate->peerRpcPorts)
     {
-        // Check shutdown before each vote request
+
         if (candidate->shutdownRequested.load())
         {
             std::cout << "[Candidate " << candidate->id << "] Aborting election - shutdown requested\n";
@@ -273,7 +279,6 @@ void start_election(std::shared_ptr<RaftNode> candidate, std::vector<std::shared
 
         std::string responseStr = sendRPC("127.0.0.1", peerPort, nlohmann::json(req).dump());
 
-        // Check shutdown after RPC
         if (candidate->shutdownRequested.load())
         {
             std::cout << "[Candidate " << candidate->id << "] Aborting election after RPC - shutdown requested\n";
@@ -293,7 +298,6 @@ void start_election(std::shared_ptr<RaftNode> candidate, std::vector<std::shared
             {
                 std::lock_guard<std::mutex> lock(candidate->mtx);
 
-                // Check shutdown before state change
                 if (candidate->shutdownRequested.load())
                 {
                     return;
@@ -321,7 +325,6 @@ void start_election(std::shared_ptr<RaftNode> candidate, std::vector<std::shared
         }
     }
 
-    // Check shutdown before becoming leader
     if (candidate->shutdownRequested.load())
     {
         std::cout << "[Candidate " << candidate->id << "] Not becoming leader - shutdown requested\n";
@@ -333,7 +336,6 @@ void start_election(std::shared_ptr<RaftNode> candidate, std::vector<std::shared
         {
             std::lock_guard<std::mutex> lock(candidate->mtx);
 
-            // Final shutdown check before leadership
             if (candidate->shutdownRequested.load())
             {
                 std::cout << "[Candidate " << candidate->id << "] Not becoming leader - shutdown requested\n";
@@ -342,7 +344,8 @@ void start_election(std::shared_ptr<RaftNode> candidate, std::vector<std::shared
 
             candidate->state = NodeState::LEADER;
             candidate->runningHeartbeats = true;
-            
+            candidate->leaderId = candidate->id;
+
             for (size_t i = 0; i < candidate->nextIndex.size(); i++)
             {
                 candidate->nextIndex[i] = candidate->log.size();
@@ -354,17 +357,15 @@ void start_election(std::shared_ptr<RaftNode> candidate, std::vector<std::shared
                   << " Term: " << candidate->currentTerm << "\n";
         reset_timeout(candidate);
 
-        // More careful heartbeat thread management
         if (candidate->heartbeatThread.joinable())
         {
             candidate->runningHeartbeats = false;
             std::cout << "[Node " << candidate->id << "] Joining existing heartbeat thread...\n";
             candidate->heartbeatThread.join();
             std::cout << "[Node " << candidate->id << "] Existing heartbeat thread joined\n";
-            candidate->runningHeartbeats = true; // Reset flag after join
+            candidate->runningHeartbeats = true;
         }
 
-        // Check shutdown before starting heartbeat thread
         if (!candidate->shutdownRequested.load())
         {
             std::cout << "[Node " << candidate->id << "] Starting new heartbeat thread...\n";
@@ -379,37 +380,81 @@ void start_election(std::shared_ptr<RaftNode> candidate, std::vector<std::shared
     }
 }
 
-void RaftNode::applyToStateMachine(const std::string &command)
+std::string RaftNode::applyToStateMachine(const std::string &command)
 {
     if (shutdownRequested.load())
+        return "error: node shutting down";
+
+    std::cout << "[Node " << id << "] Applying command: " << command << "\n";
+
+    std::istringstream iss(command);
+    std::string cmd, key, value;
+    iss >> cmd >> key;
+    std::getline(iss, value);
+    if (!value.empty() && value[0] == ' ')
+        value.erase(0, 1); // remove leading space
+
+    std::string result;
+
+    if (cmd == "PUT")
     {
-        return;
+        {
+            std::lock_guard<std::mutex> lock(store_mutex); // thread-safe
+            store.put(key, value);
+        }
+        result = "OK";
+    }
+    else if (cmd == "GET")
+    {
+        std::optional<std::string> val;
+        {
+            std::lock_guard<std::mutex> lock(store_mutex);
+            val = store.get(key);
+        }
+        if (val.has_value())
+            result = val.value();
+        else
+            result = "key not found";
+    }
+    else if (cmd == "DELETE")
+    {
+        bool deleted;
+        {
+            std::lock_guard<std::mutex> lock(store_mutex);
+            deleted = store.remove(key); // your delete returns bool
+        }
+        result = deleted ? "OK" : "key not found";
+    }
+    else
+    {
+        result = "error: unknown command";
     }
 
-    // parse command into key/value if KV store
-    std::cout << "[Node " << id << "] Applying command: " << command << "\n";
-    // KVStore store;
-    // store.put();
+    return result;
 }
 
-void RaftNode::handleClientCommand(const std::string command)
+std::string RaftNode::handleClientCommand(const std::string command, const std::string key, const std::string value)
 {
-    if (shutdownRequested.load()) return;
-    if (state != NodeState::LEADER) return;
+    std::string sendCommand = command + " " + key + " " + value;
+    if (shutdownRequested.load())
+        return "error: shutdown";
+    if (state != NodeState::LEADER)
+        "error: not leader";
 
     {
         std::lock_guard<std::mutex> lock(mtx);
-        logEntry entry{currentTerm, (int)log.size(), command}; // keep index = vector idx
+        logEntry entry{currentTerm, (int)log.size(), sendCommand};
         log.push_back(entry);
-        std::cout << "[Leader " << id << "] Appended command to log: " << command << "\n";
+        std::cout << "[Leader " << id << "] Appended command to log: " << sendCommand << "\n";
     }
 
     int newIndex = (int)log.size() - 1;
-    int successCount = 1; // self
+    int successCount = 1;
 
     for (size_t i = 0; i < peerRpcPorts.size(); i++)
     {
-        if (shutdownRequested.load()) return;
+        if (shutdownRequested.load())
+            return "error: shutdown";
 
         int port = peerRpcPorts[i];
         int nextIdx = nextIndex[i];
@@ -417,8 +462,10 @@ void RaftNode::handleClientCommand(const std::string command)
         int prevTerm = (prevIndex >= 0 && prevIndex < (int)log.size()) ? log[prevIndex].term : 0;
 
         json entries = json::array();
-        for (int j = nextIdx; j <= newIndex; j++) {
-            if (j < (int)log.size()) {
+        for (int j = nextIdx; j <= newIndex; j++)
+        {
+            if (j < (int)log.size())
+            {
                 entries.push_back(log[j]);
             }
         }
@@ -426,46 +473,59 @@ void RaftNode::handleClientCommand(const std::string command)
         AppendEntriesRPC msg{currentTerm, id, prevIndex, prevTerm, entries, commitIndex};
         std::string responseStr = sendRPC("127.0.0.1", port, nlohmann::json(msg).dump());
 
-        if (responseStr.empty()) continue;
+        if (responseStr.empty())
+            continue;
 
-        try {
+        try
+        {
             auto respJson = nlohmann::json::parse(responseStr);
             AppendEntriesResponse resp = respJson.get<AppendEntriesResponse>();
 
-            if (resp.term > currentTerm) {
+            if (resp.term > currentTerm)
+            {
                 std::lock_guard<std::mutex> lock(mtx);
                 currentTerm = resp.term;
                 state = NodeState::FOLLOWER;
                 votedFor = -1;
                 persistMetadata(shared_from_this());
-                return;
+                return "leader step down";
             }
 
-            if (resp.success) {
+            if (resp.success)
+            {
                 nextIndex[i] = newIndex + 1;
                 matchIndex[i] = newIndex;
                 successCount++;
-            } else {
-                if (nextIndex[i] > 0) nextIndex[i]--;
             }
-        } catch (...) {}
+            else
+            {
+                if (nextIndex[i] > 0)
+                    nextIndex[i]--;
+            }
+        }
+        catch (...)
+        {
+        }
     }
 
-    if (shutdownRequested.load()) return;
+    if (shutdownRequested.load())
+        return "error: shutdown";
 
+    std::string applyResult = "";
     if (log[newIndex].term == currentTerm && successCount > (peerRpcPorts.size() + 1) / 2)
     {
         std::lock_guard<std::mutex> lock(mtx);
         commitIndex = newIndex;
-        while (lastApplied < commitIndex && !shutdownRequested.load()) {
+        while (lastApplied < commitIndex && !shutdownRequested.load())
+        {
             lastApplied++;
-            applyToStateMachine(log[lastApplied].command);
+            applyResult = applyToStateMachine(log[lastApplied].command);
         }
     }
 
     persistMetadata(shared_from_this());
+    return applyResult;
 }
-
 
 void election_timer(std::shared_ptr<RaftNode> node,
                     std::vector<std::shared_ptr<RaftNode>> &nodes)
@@ -476,50 +536,48 @@ void election_timer(std::shared_ptr<RaftNode> node,
         {
             std::unique_lock<std::mutex> lock(node->mtx);
 
-            // **FIX 1: Check if we're a leader - leaders don't need election timeouts**
-            if (node->state == NodeState::LEADER) {
-                // Leaders should never timeout for elections
-                node->cv.wait(lock, [&] { 
-                    return node->state != NodeState::LEADER || 
-                           node->stopTimer || 
-                           node->shutdownRequested.load(); 
-                });
+            if (node->state == NodeState::LEADER)
+            {
+
+                node->cv.wait(lock, [&]
+                              { return node->state != NodeState::LEADER ||
+                                       node->stopTimer ||
+                                       node->shutdownRequested.load(); });
                 continue;
             }
 
-            // **FIX 2: Calculate time since last valid heartbeat/vote**
             auto now = Clock::now();
             auto timeSinceHeartbeat = std::chrono::duration_cast<std::chrono::milliseconds>(
                 now - node->lastHeartbeatTimePoint);
 
-            // **FIX 3: Only start election if actually timed out**
-            if (timeSinceHeartbeat >= node->electionTimeout) {
-                // Timeout occurred - start election
-                lock.unlock(); // Release lock before expensive operation
-                
-                // Double-check shutdown
-                if (node->stopTimer || node->shutdownRequested.load()) {
+            if (timeSinceHeartbeat >= node->electionTimeout)
+            {
+
+                lock.unlock();
+
+                if (node->stopTimer || node->shutdownRequested.load())
+                {
                     break;
                 }
-                
-                std::cout << "Node " << node->id << " election timeout (" 
-                          << timeSinceHeartbeat.count() << "ms >= " 
+
+                std::cout << "Node " << node->id << " election timeout ("
+                          << timeSinceHeartbeat.count() << "ms >= "
                           << node->electionTimeout.count() << "ms) → starting election\n";
                 start_election(node, nodes);
-            } else {
-                // **FIX 4: Wait for remaining timeout period**
-                auto remainingTime = node->electionTimeout - timeSinceHeartbeat;
-                bool woken_up = node->cv.wait_for(lock, remainingTime, [&] { 
-                    return node->state == NodeState::LEADER || 
-                           node->stopTimer || 
-                           node->shutdownRequested.load(); 
-                });
+            }
+            else
+            {
 
-                // If shutdown or became leader, continue loop
-                if (node->stopTimer || node->shutdownRequested.load() || woken_up) {
+                auto remainingTime = node->electionTimeout - timeSinceHeartbeat;
+                bool woken_up = node->cv.wait_for(lock, remainingTime, [&]
+                                                  { return node->state == NodeState::LEADER ||
+                                                           node->stopTimer ||
+                                                           node->shutdownRequested.load(); });
+
+                if (node->stopTimer || node->shutdownRequested.load() || woken_up)
+                {
                     continue;
                 }
-                // If we reach here, the wait timed out naturally - check again in next iteration
             }
         }
     }
@@ -530,8 +588,6 @@ void election_timer(std::shared_ptr<RaftNode> node,
 
     std::cout << "Election timer for Node " << node->id << " stopped\n";
 }
-
-
 
 void raftAlgorithm()
 {
@@ -552,7 +608,7 @@ void raftAlgorithm()
         auto node = std::make_shared<RaftNode>(i, basePort + i, peers);
         loadMetadata(node);
 
-        node->electionTimeout = std::chrono::milliseconds(2000 + rand() % 2000); 
+        node->electionTimeout = std::chrono::milliseconds(2000 + rand() % 2000);
         node->start();
         nodes.push_back(node);
     }
@@ -566,24 +622,12 @@ void raftAlgorithm()
                             { election_timer(node, nodes); });
     }
 
-    std::this_thread::sleep_for(std::chrono::seconds(5));
-
-    // Client commands...
-    std::shared_ptr<RaftNode> leader;
-    for (auto &node : nodes)
+    while (!raftShutdownRequested.load())
     {
-        if (node->state == NodeState::LEADER)
-        {
-            leader = node;
-            break;
-        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(200));
     }
 
-    if (leader)
-    {
-        leader->handleClientCommand("PUT key=value100");
-        leader->handleClientCommand("DELETE key");
-    }
+
 
     std::cout << "Shutting down Raft cluster...\n";
 
@@ -621,7 +665,7 @@ void raftAlgorithm()
     {
         std::cerr << "Exception joining timer threads: " << e.what() << "\n";
     }
-    
+
     std::cout << "Shutting down individual nodes...\n";
     try
     {
@@ -637,7 +681,6 @@ void raftAlgorithm()
         std::cerr << "Exception during node shutdown: " << e.what() << "\n";
     }
 
-    
     std::cout << "Clearing node references...\n";
     nodes.clear();
 

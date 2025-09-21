@@ -199,6 +199,7 @@ void handle_node_client(int client_socket, std::shared_ptr<RaftNode> node)
                     std::lock_guard<std::mutex> lock(node->mtx);
                     node->lastHeartbeatTimePoint = Clock::now();
                     node->electionTimeout = std::chrono::milliseconds(2000 + rand() % 2000);
+                    node->leaderId = leaderId;
                     node->cv.notify_all();
 
                     std::cout << "[Node " << node->id << "] Heartbeat received from Leader "
@@ -248,7 +249,7 @@ void handle_node_client(int client_socket, std::shared_ptr<RaftNode> node)
                             std::cout << "[Node " << node->id << "] Appended entry: " << e.command << "\n";
                         }
                     }
-                    
+
                     persistMetadata(node);
 
                     // Update commit index
@@ -274,6 +275,42 @@ void handle_node_client(int client_socket, std::shared_ptr<RaftNode> node)
 
             std::cout << "[Node " << node->id << "] AppendEntries response: success="
                       << success << ", term=" << node->currentTerm << "\n";
+        }
+        else if (rpcType == "ClientRequest")
+        {
+            std::string command = j.value("command", "");
+            std::string key = j.value("key", "");
+            std::string value = j.value("value", "");
+
+            if (node->state != NodeState::LEADER)
+            {
+                response = {
+                    {"status", "redirect"},
+                    {"leaderId", node->leaderId} // send current leader ID for client
+                };
+            }
+            else
+            {
+                // handleClientCommand now returns a string result from KV store
+                std::string result = node->handleClientCommand(command, key, value);
+
+                if (result == "OK")
+                {
+                    response = {{"status", "OK"}};
+                }
+                else if (result == "key not found")
+                {
+                    response = {{"status", "error"}, {"msg", result}};
+                }
+                else
+                {
+                    // for GET, return the value directly
+                    if (command == "GET")
+                        response = {{"status", "OK"}, {"value", result}};
+                    else
+                        response = {{"status", "error"}, {"msg", result}};
+                }
+            }
         }
 
         else

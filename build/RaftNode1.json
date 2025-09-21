@@ -1,76 +1,61 @@
 {
-    "currentTerm": 8,
+    "currentTerm": 129,
     "logEntries": [
         {
-            "command": "PUT key=value100",
+            "command": "PUT KEY1 VALUE1",
             "index": 0,
-            "term": 2
+            "term": 16
         },
         {
-            "command": "DELETE key",
+            "command": "PUT KEY1 VALUE1",
             "index": 1,
-            "term": 2
+            "term": 16
         },
         {
-            "command": "PUT key=value100",
+            "command": "GET KEY1 ",
             "index": 2,
-            "term": 3
+            "term": 16
         },
         {
-            "command": "DELETE key",
+            "command": "PUT KEY1 VALUE1",
             "index": 3,
-            "term": 3
+            "term": 129
         },
         {
-            "command": "PUT key=value100",
+            "command": "GET KEY1 ",
             "index": 4,
-            "term": 4
+            "term": 129
         },
         {
-            "command": "DELETE key",
+            "command": "DELETE KEY1 ",
             "index": 5,
-            "term": 4
+            "term": 129
         },
         {
-            "command": "PUT key=value100",
+            "command": "GET KEY1 ",
             "index": 6,
-            "term": 5
+            "term": 129
         },
         {
-            "command": "DELETE key",
+            "command": "GET KEY1 ",
             "index": 7,
-            "term": 5
+            "term": 129
         },
         {
-            "command": "PUT key=value100",
+            "command": "GET KEY1 ",
             "index": 8,
-            "term": 6
+            "term": 129
         },
         {
-            "command": "DELETE key",
+            "command": "PUT YUGAM JAIN",
             "index": 9,
-            "term": 6
+            "term": 129
         },
         {
-            "command": "PUT key=value100",
+            "command": "GET YUGAM ",
             "index": 10,
-            "term": 7
-        },
-        {
-            "command": "DELETE key",
-            "index": 11,
-            "term": 7
-        },
-        {
-            "command": "PUT key=value100",
-            "index": 12,
-            "term": 8
-        },
-        {
-            "command": "DELETE key",
-            "index": 13,
-            "term": 8
+            "term": 129
         }
     ],
-    "votedFor": 0
+    "votedFor": 2
 }
