@@ -16,12 +16,13 @@ KVStore store;
 std::mutex store_mutex;
 std::atomic<bool> raftShutdownRequested(false);
 
-void requestRaftShutdown() {
+void requestRaftShutdown()
+{
     raftShutdownRequested.store(true);
-    
 }
 
-bool isRaftShutdownRequested() {
+bool isRaftShutdownRequested()
+{
     return raftShutdownRequested.load();
 }
 
@@ -433,13 +434,22 @@ std::string RaftNode::applyToStateMachine(const std::string &command)
     return result;
 }
 
-std::string RaftNode::handleClientCommand(const std::string command, const std::string key, const std::string value)
+std::string RaftNode::handleClientCommand(const std::string &clientId, int requestId, const std::string command, const std::string key, const std::string value)
 {
-    std::string sendCommand = command + " " + key + " " + value;
     if (shutdownRequested.load())
         return "error: shutdown";
     if (state != NodeState::LEADER)
-        "error: not leader";
+        return "error: not leader";
+
+    {
+        std::lock_guard<std::mutex> lock(clientMutex);
+        if (clientLastRequest.count(clientId) && clientLastRequest[clientId] == requestId)
+        {
+            return clientResultCache[clientId]; // return cached result
+        }
+    }
+
+    std::string sendCommand = command + " " + key + " " + value;
 
     {
         std::lock_guard<std::mutex> lock(mtx);
@@ -521,6 +531,15 @@ std::string RaftNode::handleClientCommand(const std::string command, const std::
             lastApplied++;
             applyResult = applyToStateMachine(log[lastApplied].command);
         }
+        {
+            std::lock_guard<std::mutex> lock(clientMutex);
+            clientLastRequest[clientId] = requestId;
+            clientResultCache[clientId] = applyResult;
+        }
+    }
+    else
+    {
+        return "error: not committed";
     }
 
     persistMetadata(shared_from_this());
@@ -626,8 +645,6 @@ void raftAlgorithm()
     {
         std::this_thread::sleep_for(std::chrono::milliseconds(200));
     }
-
-
 
     std::cout << "Shutting down Raft cluster...\n";
 

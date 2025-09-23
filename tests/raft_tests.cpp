@@ -109,8 +109,8 @@ TEST(RaftClusterTest, LogReplicationAndCommit) {
     ASSERT_NE(leader, nullptr);
 
     // Append commands
-    leader->handleClientCommand("PUT ","key","value100");
-    leader->handleClientCommand("DELETE", "key", "");
+    leader->handleClientCommand("client-1",1,"PUT ","key","value100");
+    leader->handleClientCommand("client-1",2,"DELETE", "key", "");
 
     // Wait for commit
     std::this_thread::sleep_for(std::chrono::milliseconds(20));
@@ -132,8 +132,8 @@ TEST(RaftClusterTest, ApplyToStateMachine) {
     auto leader = getLeader(nodes);
     ASSERT_NE(leader, nullptr);
 
-    leader->handleClientCommand("PUT ","key","value100");
-    leader->handleClientCommand("DELETE", "key", "");
+    leader->handleClientCommand("client-1",1,"PUT ","key","value100");
+    leader->handleClientCommand("client-1",2,"DELETE", "key", "");
 
     std::this_thread::sleep_for(std::chrono::milliseconds(20));
 

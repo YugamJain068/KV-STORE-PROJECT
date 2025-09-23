@@ -80,8 +80,12 @@ public:
     std::atomic<bool> runningHeartbeats{false};
     std::thread heartbeatThread;
 
-    std::string handleClientCommand(const std::string command, const std::string key, const std::string value);
+    std::string handleClientCommand(const std::string& clientId, int requestId, const std::string command, const std::string key, const std::string value);
     std::string applyToStateMachine(const std::string &command);
+
+    std::unordered_map<std::string, int> clientLastRequest;             // clientId → lastRequestId
+    std::unordered_map<std::string, std::string> clientResultCache;     // clientId → lastResult
+    std::mutex clientMutex;
 };
 
 void raftAlgorithm();

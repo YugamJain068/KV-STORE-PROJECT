@@ -91,6 +91,10 @@ void handle_client(int client_socket)
 
         int current_node = rand() % raft_nodes.size();
 
+        static std::unordered_map<int, int> clientRequestCounter;
+        std::string clientId = "client-" + std::to_string(client_socket);
+        int requestId = ++clientRequestCounter[client_socket];
+
         if (command == "PUT")
         {
             std::string key, value;
@@ -110,7 +114,9 @@ void handle_client(int client_socket)
                     {"rpc", "ClientRequest"},
                     {"command", "PUT"},
                     {"key", key},
-                    {"value", value}};
+                    {"value", value},
+                    {"clientId", clientId},
+                    {"requestId", requestId}};
 
                 std::string responseStr = sendClientRequest(msg);
                 auto respJson = nlohmann::json::parse(responseStr);
@@ -144,7 +150,9 @@ void handle_client(int client_socket)
                     {"rpc", "ClientRequest"},
                     {"command", "GET"},
                     {"key", key},
-                    {"value", ""}};
+                    {"value", ""},
+                    {"clientId", clientId},
+                    {"requestId", requestId}};
 
                 std::string responseStr = sendClientRequest(msg);
                 auto respJson = nlohmann::json::parse(responseStr);
@@ -177,13 +185,15 @@ void handle_client(int client_socket)
                     {"rpc", "ClientRequest"},
                     {"command", "DELETE"},
                     {"key", key},
-                    {"value", ""}};
+                    {"value", ""},
+                    {"clientId", clientId},
+                    {"requestId", requestId}};
 
                 std::string responseStr = sendClientRequest(msg);
                 auto respJson = nlohmann::json::parse(responseStr);
                 if (respJson["status"] == "OK")
                 {
-                    response = response = key + "got deleted\n";
+                    response = response = key + " got deleted\n";
                 }
                 else if (respJson["status"] == "redirect")
                 {

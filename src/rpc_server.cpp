@@ -281,6 +281,8 @@ void handle_node_client(int client_socket, std::shared_ptr<RaftNode> node)
             std::string command = j.value("command", "");
             std::string key = j.value("key", "");
             std::string value = j.value("value", "");
+            std::string clientId = j.value("clientId", "");
+            int requestId = j.value("requestId", 0);
 
             if (node->state != NodeState::LEADER)
             {
@@ -292,7 +294,7 @@ void handle_node_client(int client_socket, std::shared_ptr<RaftNode> node)
             else
             {
                 // handleClientCommand now returns a string result from KV store
-                std::string result = node->handleClientCommand(command, key, value);
+                std::string result = node->handleClientCommand(clientId, requestId, command, key, value);
 
                 if (result == "OK")
                 {
