@@ -4,7 +4,7 @@
 # compile CXX with /usr/bin/c++
 CXX_DEFINES = 
 
-CXX_INCLUDES = -I/home/yugam05/kvstore_project/include -I/home/yugam05/kvstore_project/googletest/googletest/include -I/home/yugam05/kvstore_project/googletest/googletest
+CXX_INCLUDES = 
 
 CXX_FLAGS = -g -std=gnu++17
 

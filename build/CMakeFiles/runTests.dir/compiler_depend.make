@@ -624,6 +624,7 @@ CMakeFiles/runTests.dir/src/raft_node.cpp.o: /home/yugam05/kvstore_project/src/r
   /home/yugam05/kvstore_project/src/persist_functions.h \
   /home/yugam05/kvstore_project/src/raft_node.h \
   /home/yugam05/kvstore_project/src/rpc_server.h \
+  /home/yugam05/kvstore_project/src/snapshot.h \
   /home/yugam05/kvstore_project/src/wal.h \
   /usr/include/alloca.h \
   /usr/include/asm-generic/bitsperlong.h \
@@ -4050,6 +4051,8 @@ CMakeFiles/runTests.dir/tests/wal_recovery_test.cpp.o: /home/yugam05/kvstore_pro
 /home/yugam05/kvstore_project/googletest/googletest/include/gtest/internal/gtest-type-util.h:
 
 /usr/include/asm-generic/posix_types.h:
+
+/home/yugam05/kvstore_project/src/snapshot.h:
 
 /home/yugam05/kvstore_project/src/rpc_server.h:
 

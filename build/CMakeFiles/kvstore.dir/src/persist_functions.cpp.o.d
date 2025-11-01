@@ -297,4 +297,12 @@ CMakeFiles/kvstore.dir/src/persist_functions.cpp.o: \
  /usr/include/c++/13/bits/unique_lock.h \
  /usr/include/c++/13/condition_variable /usr/include/c++/13/atomic \
  /usr/include/c++/13/thread /usr/include/c++/13/bits/std_thread.h \
- /usr/include/c++/13/bits/this_thread_sleep.h
+ /usr/include/c++/13/bits/this_thread_sleep.h \
+ /usr/include/c++/13/shared_mutex \
+ /home/yugam05/kvstore_project/src/snapshot.h \
+ /home/yugam05/kvstore_project/src/kvstore.h /usr/include/c++/13/optional \
+ /usr/include/c++/13/queue /usr/include/c++/13/deque \
+ /usr/include/c++/13/bits/stl_deque.h /usr/include/c++/13/bits/deque.tcc \
+ /usr/include/c++/13/bits/stl_queue.h /usr/include/c++/13/iostream \
+ /home/yugam05/kvstore_project/src/wal.h \
+ /home/yugam05/kvstore_project/src/log_entry.h

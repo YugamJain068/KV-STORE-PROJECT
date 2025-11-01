@@ -26,8 +26,25 @@ struct AppendEntriesRPC{
     int leaderCommit;
 };
 
+struct InstallSnapshotRPC {
+    int term;
+    int leaderId;
+    int lastIncludedIndex;
+    int lastIncludedTerm;
+    int offset;                 // position in snapshot stream
+    std::vector<char> data;     // raw chunk
+    bool done;  
+};
+
+struct InstallSnapshotReply {
+    int term;
+};
+
 void to_json(nlohmann::json &j, const RequestVoteRPC &r) ;
 void to_json(nlohmann::json &j, const AppendEntriesRPC &r) ;
+
+void to_json(nlohmann::json& j, const InstallSnapshotRPC& p);
+void from_json(const nlohmann::json& j, InstallSnapshotRPC& p);
 
 struct RequestVoteResponse {
     int term;

@@ -3,6 +3,7 @@
 #include <iostream>
 #include <fstream>
 
+KVStore store;
 
 KVStore::KVStore() : writeAheadLog("walfile.wal")
 {
@@ -100,4 +101,8 @@ void KVStore::loadFromFile(const std::string &filename)
             mp[key] = std::move(value); // i can call put function here but it will cause self-deadlock because lock is acquired in loadFromFile function and then put function will also try to lock the same mutex resulting in deadlock
         }
     }
+}
+
+void KVStore::writeAheadLog_truncate(int lastIncludedIndex){
+    writeAheadLog.truncateUpTo(lastIncludedIndex);
 }

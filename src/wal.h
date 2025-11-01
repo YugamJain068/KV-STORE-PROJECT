@@ -14,6 +14,7 @@ public:
 
     void appendEntry(const std::string &command);
     std::vector<LogEntry> loadAllEntries() const;
+    void truncateUpTo(int lastIncludedIndex);
 
 private:
     std::string walBinaryFile;

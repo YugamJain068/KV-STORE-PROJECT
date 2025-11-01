@@ -9,9 +9,46 @@
 #include <iostream>
 #include <thread>
 #include <nlohmann/json.hpp>
+#include <fstream>
+#include "snapshot.h"
 #include "persist_functions.h"
+#include "kvstore_global.h"
+#include "decode_encodebase64.h"
 
 extern std::vector<std::shared_ptr<RaftNode>> nodes;
+
+Snapshot deserializeSnapshot(const std::vector<char> &buffer)
+{
+    Snapshot snap;
+    std::istringstream iss(std::string(buffer.begin(), buffer.end()), std::ios::binary);
+
+    // Metadata
+    iss.read(reinterpret_cast<char *>(&snap.lastIncludedIndex), sizeof(snap.lastIncludedIndex));
+    iss.read(reinterpret_cast<char *>(&snap.lastIncludedTerm), sizeof(snap.lastIncludedTerm));
+
+    // State map size
+    int size = 0;
+    iss.read(reinterpret_cast<char *>(&size), sizeof(size));
+
+    for (int i = 0; i < size; i++)
+    {
+        int klen = 0, vlen = 0;
+
+        // Read key
+        iss.read(reinterpret_cast<char *>(&klen), sizeof(klen));
+        std::string key(klen, '\0');
+        iss.read(&key[0], klen);
+
+        // Read value
+        iss.read(reinterpret_cast<char *>(&vlen), sizeof(vlen));
+        std::string value(vlen, '\0');
+        iss.read(&value[0], vlen);
+
+        snap.kvState[key] = value;
+    }
+
+    return snap;
+}
 
 void to_json(nlohmann::json &j, const RequestVoteRPC &r)
 {
@@ -43,6 +80,35 @@ void from_json(const nlohmann::json &j, AppendEntriesResponse &r)
 {
     r.term = j.value("term", 0);
     r.success = j.value("success", false);
+}
+
+// Convert InstallSnapshotRPC → JSON
+void to_json(nlohmann::json &j, const InstallSnapshotRPC &p)
+{
+    j = nlohmann::json{
+        {"term", p.term},
+        {"leaderId", p.leaderId},
+        {"lastIncludedIndex", p.lastIncludedIndex},
+        {"lastIncludedTerm", p.lastIncludedTerm},
+        {"offset", p.offset},
+        {"data", base64Encode(p.data)}, // encode raw bytes
+        {"done", p.done}};
+}
+
+// Convert JSON → InstallSnapshotRPC
+void from_json(const nlohmann::json &j, InstallSnapshotRPC &p)
+{
+    j.at("term").get_to(p.term);
+    j.at("leaderId").get_to(p.leaderId);
+    j.at("lastIncludedIndex").get_to(p.lastIncludedIndex);
+    j.at("lastIncludedTerm").get_to(p.lastIncludedTerm);
+    j.at("offset").get_to(p.offset);
+
+    std::string chunkBase64;
+    j.at("data").get_to(chunkBase64);
+    p.data = base64Decode(chunkBase64); // decode back to raw bytes
+
+    j.at("done").get_to(p.done);
 }
 
 #ifndef TESTING
@@ -77,7 +143,7 @@ std::string sendRPC(const std::string &targetIp, int targetPort, const std::stri
 
         send(sock, jsonPayload.c_str(), jsonPayload.size(), 0);
 
-        char buffer[2048];
+        char buffer[64 * 1024];
         int bytes_received = recv(sock, buffer, sizeof(buffer) - 1, 0);
         std::string response;
         if (bytes_received > 0)
@@ -106,7 +172,7 @@ void handle_node_client(int client_socket, std::shared_ptr<RaftNode> node)
         return;
     }
 
-    char buffer[2048];
+    char buffer[8192];
 
     int bytes_received = recv(client_socket, buffer, sizeof(buffer) - 1, 0);
     if (bytes_received <= 0)
@@ -175,6 +241,20 @@ void handle_node_client(int client_socket, std::shared_ptr<RaftNode> node)
 
             bool success = false;
 
+            std::lock_guard<std::mutex> lock(node->mtx);
+
+            if (node->receivingSnapshot.load() && node->snapshotLeaderId == leaderId)
+            {
+                std::cout << "[Node " << node->id << "] Rejecting AppendEntries - snapshot transfer in progress\n";
+                response = {{"term", node->currentTerm}, {"success", false}};
+
+                std::string respStr = response.dump();
+                send(client_socket, respStr.c_str(), respStr.size(), 0);
+                std::cout << "[RPC Reply] " << respStr << "\n";
+                close(client_socket);
+                return;
+            }
+
             if (term < node->currentTerm)
             {
                 // Stale leader
@@ -184,87 +264,200 @@ void handle_node_client(int client_socket, std::shared_ptr<RaftNode> node)
             }
             else
             {
-                bool shouldResetTimeout = (term >= node->currentTerm);
-
+                // Step down if term is higher
                 if (term > node->currentTerm || node->state == NodeState::CANDIDATE)
                 {
                     std::cout << "[Node " << node->id << "] Stepping down due to AppendEntries from term "
                               << term << "\n";
                     node->becomeFollower(term);
-                    shouldResetTimeout = true;
                 }
 
-                if (shouldResetTimeout)
+                // Reset heartbeat / timeout
+                node->lastHeartbeatTimePoint = Clock::now();
+                node->electionTimeout = std::chrono::milliseconds(2000 + rand() % 2000);
+                node->leaderId = leaderId;
+                node->cv.notify_all();
+                std::cout << "[Node " << node->id << "] Heartbeat received from Leader "
+                          << leaderId << ", timeout reset to "
+                          << node->electionTimeout.count() << "ms\n";
+
+                // --- Log consistency check ---
+                if (prevLogIndex >= 0)
                 {
-                    std::lock_guard<std::mutex> lock(node->mtx);
-                    node->lastHeartbeatTimePoint = Clock::now();
-                    node->electionTimeout = std::chrono::milliseconds(2000 + rand() % 2000);
-                    node->leaderId = leaderId;
-                    node->cv.notify_all();
-
-                    std::cout << "[Node " << node->id << "] Heartbeat received from Leader "
-                              << leaderId << ", timeout reset to "
-                              << node->electionTimeout.count() << "ms\n";
-                }
-
-                {
-                    std::lock_guard<std::mutex> lock(node->mtx);
-
-                    // Log consistency check
-                    if (prevLogIndex >= 0)
+                    // Check if prevLogIndex is covered by snapshot
+                    if (node->latestSnapshot && prevLogIndex < node->latestSnapshot->lastIncludedIndex)
                     {
-                        if (prevLogIndex >= (int)node->log.size() ||
-                            node->log[prevLogIndex].term != prevLogTerm)
-                        {
-                            success = false;
-                            std::cout << "[Node " << node->id << "] Log inconsistency: prevLogIndex="
-                                      << prevLogIndex << ", myLogSize=" << node->log.size() << "\n";
-                        }
-                        else
-                        {
-                            success = true;
-                        }
+                        // Leader is behind our snapshot - shouldn't happen in normal operation
+                        success = false;
+                        std::cout << "[Node " << node->id << "] prevLogIndex " << prevLogIndex
+                                  << " is behind our snapshot at " << node->latestSnapshot->lastIncludedIndex << "\n";
+                    }
+                    else if (node->latestSnapshot && prevLogIndex == node->latestSnapshot->lastIncludedIndex)
+                    {
+                        // prevLogIndex matches our snapshot boundary - this is valid
+                        success = (prevLogTerm == node->latestSnapshot->lastIncludedTerm);
+                        std::cout << "[Node " << node->id << "] prevLogIndex matches snapshot boundary, success="
+                                  << success << "\n";
                     }
                     else
                     {
-                        success = true; // no prev entry to check
-                    }
-
-                    // Append new entries if consistent
-                    if (success && !entries.empty())
-                    {
-                        int insertIndex = prevLogIndex + 1;
-
-                        if (insertIndex < (int)node->log.size())
+                        // prevLogIndex is beyond snapshot, check actual log
+                        int logIndex = prevLogIndex;
+                        if (node->latestSnapshot)
                         {
-                            node->log.erase(node->log.begin() + insertIndex, node->log.end());
-                            std::cout << "[Node " << node->id << "] Deleted conflicting entries from index "
-                                      << insertIndex << "\n";
+                            logIndex = prevLogIndex - node->latestSnapshot->lastIncludedIndex - 1;
                         }
 
-                        for (auto &entryJson : entries)
+                        std::cout << "[Node " << node->id << "] Consistency check: prevLogIndex=" << prevLogIndex
+                                  << ", prevLogTerm=" << prevLogTerm
+                                  << ", logIndex=" << logIndex
+                                  << ", log.size()=" << node->log.size()
+                                  << ", snapshot=" << (node->latestSnapshot ? node->latestSnapshot->lastIncludedIndex : -1);
+
+                        // Check bounds and term match
+                        if (logIndex < 0 || logIndex >= (int)node->log.size())
                         {
-                            logEntry e = entryJson.get<logEntry>();
+                            // Out of bounds
+                            success = false;
+                            std::cout << "[Node " << node->id << "] Log inconsistency: prevLogIndex="
+                                      << prevLogIndex << ", calculated logIndex=" << logIndex
+                                      << ", log.size()=" << node->log.size() << "\n";
+                        }
+                        else if (node->log[logIndex].term != prevLogTerm)
+                        {
+                            // Term mismatch
+                            success = false;
+                            std::cout << "[Node " << node->id << "] Term mismatch at prevLogIndex="
+                                      << prevLogIndex << " (expected term=" << prevLogTerm
+                                      << ", actual term=" << node->log[logIndex].term << ")\n";
+                        }
+                        else
+                        {
+                            // Everything matches
+                            success = true;
+                        }
+                    }
+                }
+                else
+                {
+                    // prevLogIndex = -1 means empty log, always valid
+                    success = true;
+                }
+
+                // --- Append entries if consistent ---
+                if (success && !entries.empty())
+                {
+                    int insertIndex = prevLogIndex + 1;
+                    int logInsertIndex = insertIndex;
+
+                    if (node->latestSnapshot)
+                    {
+                        logInsertIndex = insertIndex - node->latestSnapshot->lastIncludedIndex - 1;
+                    }
+
+                    // Remove conflicting entries
+                    if (logInsertIndex >= 0 && logInsertIndex < (int)node->log.size())
+                    {
+                        // Check if existing entry conflicts
+                        logEntry firstNewEntry = entries[0].get<logEntry>();
+                        if (node->log[logInsertIndex].term != firstNewEntry.term)
+                        {
+                            node->log.erase(node->log.begin() + logInsertIndex, node->log.end());
+                        }
+                        else
+                        {
+                            // Entry matches, skip appending duplicates
+                            std::cout << "[Node " << node->id << "] Entry at index "
+                                      << insertIndex << " already exists and matches\n";
+                            success = true;
+                            goto skip_append;
+                        }
+                    }
+
+                    for (auto &entryJson : entries)
+                    {
+                        logEntry e = entryJson.get<logEntry>();
+                        int expectedLogIdx = e.index;
+                        if (node->latestSnapshot)
+                        {
+                            expectedLogIdx = e.index - node->latestSnapshot->lastIncludedIndex - 1;
+                        }
+
+                        // Only append if we don't have this entry
+                        if (expectedLogIdx >= (int)node->log.size())
+                        {
                             node->log.push_back(e);
                             std::cout << "[Node " << node->id << "] Appended entry: " << e.command << "\n";
                         }
                     }
+                }
+            skip_append:
+                persistMetadata(node);
 
-                    persistMetadata(node);
+                // --- Update commit index safely ---
+                if (success && leaderCommit > node->commitIndex)
+                {
+                    int newCommitIndex = std::min(leaderCommit, node->getLogSize() - 1);
+                    node->commitIndex = newCommitIndex;
 
-                    // Update commit index
-                    if (success && leaderCommit > node->commitIndex)
+                    while (node->lastApplied < node->commitIndex)
                     {
-                        int oldCommitIndex = node->commitIndex;
-                        node->commitIndex = std::min(leaderCommit, (int)node->log.size() - 1);
-                        std::cout << "[Node " << node->id << "] Commit index updated from "
-                                  << oldCommitIndex << " to " << node->commitIndex << "\n";
+                        node->lastApplied++;
 
-                        while (node->lastApplied < node->commitIndex && !node->shutdownRequested.load())
+                        int logIdx = node->lastApplied;
+                        if (node->latestSnapshot)
                         {
-                            node->lastApplied++;
-                            node->applyToStateMachine(node->log[node->lastApplied].command);
+                            logIdx = node->lastApplied - node->latestSnapshot->lastIncludedIndex - 1;
                         }
+
+                        if (logIdx >= 0 && logIdx < (int)node->log.size())
+                        {
+                            node->applyToStateMachine(node->log[logIdx].command);
+                        }
+                    }
+
+                    // Create snapshot if needed
+                    int totalLogSize = node->getLogSize();
+
+                    std::cout << "[Node " << node->id << "] After applying: totalLogSize="
+                              << totalLogSize << ", log.size()=" << node->log.size()
+                              << ", lastApplied=" << node->lastApplied << "\n";
+                    if ((int)node->log.size() >= SNAPSHOT_THRESHOLD)
+                    {
+                        std::cout << "[Node " << node->id << "] STARTING snapshot creation at totalLogSize="
+                                  << totalLogSize << ", lastApplied=" << node->lastApplied << "\n";
+
+                        auto newSnapshot = std::make_shared<Snapshot>();
+                        newSnapshot->lastIncludedIndex = node->lastApplied;
+                        newSnapshot->lastIncludedTerm = node->getLogTerm(node->lastApplied);
+
+                        std::cout << "[Node " << node->id << "] About to dump KV store...\n";
+                        {
+                            std::lock_guard<std::mutex> storeLock(store_mutex);
+                            newSnapshot->kvState = store.dumpToMap();
+                        }
+
+                        saveSnapshot(*newSnapshot, node->id);
+
+                        node->truncateLogSafe(newSnapshot->lastIncludedIndex);
+
+                        node->latestSnapshot = newSnapshot;
+
+                        store.writeAheadLog_truncate(newSnapshot->lastIncludedIndex);
+
+                        for (size_t i = 0; i < node->nextIndex.size(); i++)
+                        {
+                            if (node->nextIndex[i] <= newSnapshot->lastIncludedIndex)
+                            {
+                                node->nextIndex[i] = newSnapshot->lastIncludedIndex + 1;
+                            }
+                        }
+
+                        persistMetadata(node);
+
+                        std::cout << "[Node " << node->id << "] Created snapshot at index "
+                                  << newSnapshot->lastIncludedIndex
+                                  << " (term " << newSnapshot->lastIncludedTerm << ")\n";
                     }
                 }
             }
@@ -276,6 +469,7 @@ void handle_node_client(int client_socket, std::shared_ptr<RaftNode> node)
             std::cout << "[Node " << node->id << "] AppendEntries response: success="
                       << success << ", term=" << node->currentTerm << "\n";
         }
+
         else if (rpcType == "ClientRequest")
         {
             std::string command = j.value("command", "");
@@ -314,7 +508,110 @@ void handle_node_client(int client_socket, std::shared_ptr<RaftNode> node)
                 }
             }
         }
+        else if (rpcType == "InstallSnapshot")
+        {
+            try
+            {
+                int term = j.value("term", 0);
+                int leaderId = j.value("leaderId", -1);
+                int lastIncludedIndex = j.value("lastIncludedIndex", -1);
+                int lastIncludedTerm = j.value("lastIncludedTerm", 0);
+                int offset = j.value("offset", 0);
+                std::string chunkBase64 = j.value("data", "");
+                bool done = j.value("done", false);
 
+                // Optional: sequence tracking for debugging
+                int chunkNum = j.value("chunkNum", -1);
+                int totalChunks = j.value("totalChunks", -1);
+
+                if (chunkNum >= 0)
+                {
+                    std::cout << "[Node " << node->id << "] Receiving chunk " << (chunkNum + 1)
+                              << "/" << totalChunks << "\n";
+                }
+
+                if (term < node->currentTerm)
+                {
+                    response = {{"term", node->currentTerm}, {"success", false}, {"error", "stale_term"}};
+                }
+                else
+                {
+                    if (term > node->currentTerm)
+                        node->becomeFollower(term);
+
+                    // Reset buffer on first chunk
+                    if (offset == 0)
+                    {
+                        node->snapshotBuffer.clear();
+                        node->snapshotBuffer.reserve(1024 * 1024); // Pre-allocate 1MB
+                        std::cout << "[Node " << node->id << "] Starting snapshot reception, buffer cleared\n";
+                    }
+
+                    // Decode and validate chunk
+                    std::vector<char> chunk;
+                    try
+                    {
+                        if (!chunkBase64.empty())
+                        {
+                            chunk = base64Decode(chunkBase64);
+                        }
+
+                        // Expand buffer if needed
+                        if (node->snapshotBuffer.size() < offset + chunk.size())
+                        {
+                            node->snapshotBuffer.resize(offset + chunk.size());
+                        }
+
+                        // Copy chunk data
+                        if (!chunk.empty())
+                        {
+                            std::copy(chunk.begin(), chunk.end(), node->snapshotBuffer.begin() + offset);
+                        }
+
+                        std::cout << "[Node " << node->id << "] Chunk written at offset " << offset
+                                  << ", size " << chunk.size() << ", buffer size now "
+                                  << node->snapshotBuffer.size() << "\n";
+
+                        if (done)
+                        {
+                            // Deserialize snapshot
+                            Snapshot snap = deserializeSnapshot(node->snapshotBuffer);
+
+                            // Save to disk
+                            saveSnapshot(snap, node->id);
+
+                            // Update state machine and clear log
+                            {
+                                std::lock_guard<std::mutex> lock(node->mtx);
+                                store.loadFromMap(snap.kvState);
+                                node->lastApplied = snap.lastIncludedIndex;
+                                node->commitIndex = snap.lastIncludedIndex;
+                                node->log.clear(); // ✅ Clear ALL log entries
+
+                                // Set snapshot
+                                auto snapshotPtr = std::make_shared<Snapshot>(snap);
+                                node->latestSnapshot = snapshotPtr;
+                            }
+
+                            persistMetadata(node);
+                            node->snapshotBuffer.clear();
+                        }
+
+                        response = {{"term", node->currentTerm}, {"success", true}};
+                    }
+                    catch (const std::exception &e)
+                    {
+                        std::cerr << "[Node " << node->id << "] Chunk processing error: " << e.what() << "\n";
+                        response = {{"term", node->currentTerm}, {"success", false}, {"error", "processing_failed"}};
+                    }
+                }
+            }
+            catch (const std::exception &e)
+            {
+                std::cerr << "[Node " << node->id << "] InstallSnapshot handler error: " << e.what() << "\n";
+                response = {{"term", node->currentTerm}, {"success", false}, {"error", "handler_failed"}};
+            }
+        }
         else
         {
             response = {{"error", "Unknown RPC"}};

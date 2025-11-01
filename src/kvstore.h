@@ -13,6 +13,7 @@
 #include <shared_mutex>
 #include "wal.h"
 
+
 class KVStore
 {
 public:
@@ -23,11 +24,12 @@ public:
     bool remove(const std::string &key);
     void saveToFile(const std::string &filename);
     void loadFromFile(const std::string &filename);
+    void writeAheadLog_truncate(int lastIncludedIndex);
 
     template <typename Predicate>
     void filterAndPrint(Predicate pred) const
     {
-        std::lock_guard<std::mutex> lock(mtx);
+        std::shared_lock lock(mtx);
         for (const auto &[k, v] : mp)
         {
             if (pred(k, v))
@@ -36,11 +38,24 @@ public:
             }
         }
     }
+    std::unordered_map<std::string, std::string> dumpToMap() const
+    {
+        std::shared_lock lock(mtx);
+        return mp; // copy the state
+    }
+
+    void loadFromMap(const std::unordered_map<std::string, std::string> &state)
+    {
+        std::unique_lock lock(mtx);
+        mp = state; // replace with snapshot state
+    }
 
 private:
     std::unordered_map<std::string, std::string> mp;
     mutable std::shared_mutex mtx;
     WAL writeAheadLog;
 };
+
+
 
 #endif

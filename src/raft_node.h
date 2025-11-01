@@ -13,6 +13,10 @@
 #include <thread>
 #include <nlohmann/json.hpp>
 #include <memory>
+#include <shared_mutex>
+#include "snapshot.h"
+
+struct Snapshot;
 
 using Clock = std::chrono::steady_clock;
 
@@ -64,7 +68,7 @@ public:
     int rpcPort;
     std::thread rpcServerThread;
 
-    std::mutex mtx;
+    mutable std::mutex mtx;
     std::condition_variable cv;
 
     std::atomic<bool> stopTimer{false};
@@ -80,13 +84,37 @@ public:
     std::atomic<bool> runningHeartbeats{false};
     std::thread heartbeatThread;
 
-    std::string handleClientCommand(const std::string& clientId, int requestId, const std::string command, const std::string key, const std::string value);
+    std::string handleClientCommand(const std::string &clientId, int requestId, const std::string command, const std::string key, const std::string value);
     std::string applyToStateMachine(const std::string &command);
 
-    std::unordered_map<std::string, int> clientLastRequest;             // clientId → lastRequestId
-    std::unordered_map<std::string, std::string> clientResultCache;     // clientId → lastResult
+    std::unordered_map<std::string, int> clientLastRequest;         // clientId → lastRequestId
+    std::unordered_map<std::string, std::string> clientResultCache; // clientId → lastResult
     std::mutex clientMutex;
+
+    std::shared_ptr<Snapshot> latestSnapshot;
+    mutable std::shared_mutex logMutex;
+
+    std::vector<char> snapshotBuffer;
+    std::atomic<bool> receivingSnapshot{false};
+    int snapshotLeaderId = -1;
+
+    // Add this method to RaftNode class (in raft_node.h and implement in raft_node.cpp)
+
+    int getLogTerm(int index) const;
+
+    int getLogSize() const;
+
+    std::vector<logEntry> getLogEntries(int startIndex, int endIndex) const;
+
+    void appendLogEntry(const logEntry &entry);
+
+    void truncateLogSafe(int lastIncludedIndex);
 };
+
+extern std::mutex store_mutex;
+extern std::atomic<bool> raftShutdownRequested;
+extern const int SNAPSHOT_THRESHOLD;
+extern const int SNAPSHOT_MIN_NEW_ENTRIES;
 
 void raftAlgorithm();
 void reset_timeout(std::shared_ptr<RaftNode> node);
@@ -95,5 +123,6 @@ void start_election(std::shared_ptr<RaftNode> candidate, std::vector<std::shared
 void election_timer(std::shared_ptr<RaftNode> node, std::vector<std::shared_ptr<RaftNode>> &nodes);
 void requestRaftShutdown();
 bool isRaftShutdownRequested();
+std::vector<char> serializeSnapshot(const Snapshot &snap);
 
 #endif

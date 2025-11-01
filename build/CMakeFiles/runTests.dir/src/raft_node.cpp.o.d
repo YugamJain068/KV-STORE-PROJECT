@@ -326,4 +326,5 @@ CMakeFiles/runTests.dir/src/raft_node.cpp.o: \
  /usr/include/asm-generic/bitsperlong.h \
  /usr/include/x86_64-linux-gnu/asm/sockios.h \
  /usr/include/asm-generic/sockios.h \
- /usr/include/x86_64-linux-gnu/bits/types/struct_osockaddr.h
+ /usr/include/x86_64-linux-gnu/bits/types/struct_osockaddr.h \
+ /home/yugam05/kvstore_project/src/snapshot.h

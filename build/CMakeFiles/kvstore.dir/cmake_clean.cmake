@@ -1,4 +1,6 @@
 file(REMOVE_RECURSE
+  "CMakeFiles/kvstore.dir/src/decode_encodebase64.cpp.o"
+  "CMakeFiles/kvstore.dir/src/decode_encodebase64.cpp.o.d"
   "CMakeFiles/kvstore.dir/src/kvstore.cpp.o"
   "CMakeFiles/kvstore.dir/src/kvstore.cpp.o.d"
   "CMakeFiles/kvstore.dir/src/main.cpp.o"
@@ -11,6 +13,8 @@ file(REMOVE_RECURSE
   "CMakeFiles/kvstore.dir/src/rpc_server.cpp.o.d"
   "CMakeFiles/kvstore.dir/src/server.cpp.o"
   "CMakeFiles/kvstore.dir/src/server.cpp.o.d"
+  "CMakeFiles/kvstore.dir/src/snapshot.cpp.o"
+  "CMakeFiles/kvstore.dir/src/snapshot.cpp.o.d"
   "CMakeFiles/kvstore.dir/src/wal.cpp.o"
   "CMakeFiles/kvstore.dir/src/wal.cpp.o.d"
   "kvstore"

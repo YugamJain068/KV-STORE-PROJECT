@@ -327,4 +327,5 @@ CMakeFiles/kvstore.dir/src/server.cpp.o: \
  /home/yugam05/kvstore_project/src/raft_node.h /usr/include/c++/13/random \
  /usr/include/c++/13/bits/random.h \
  /usr/include/x86_64-linux-gnu/c++/13/bits/opt_random.h \
- /usr/include/c++/13/bits/random.tcc /usr/include/c++/13/chrono
+ /usr/include/c++/13/bits/random.tcc /usr/include/c++/13/chrono \
+ /home/yugam05/kvstore_project/src/snapshot.h

@@ -7,14 +7,18 @@
 #include "kvstore.h"
 #include <unistd.h>
 #include <sys/socket.h>
+#include "snapshot.h"
+#include "kvstore_global.h"
+#include <fstream>
+#include "decode_encodebase64.h"
 
 using json = nlohmann::json;
 
 using Clock = std::chrono::steady_clock;
 
-KVStore store;
 std::mutex store_mutex;
 std::atomic<bool> raftShutdownRequested(false);
+const int SNAPSHOT_THRESHOLD = 100;
 
 void requestRaftShutdown()
 {
@@ -27,11 +31,11 @@ bool isRaftShutdownRequested()
 }
 
 RaftNode::RaftNode(int nodeId_, int port, const std::vector<int> &peers)
-    : id(nodeId_), rpcPort(port), peerRpcPorts(peers)
+    : id(nodeId_), rpcPort(port), peerRpcPorts(peers), latestSnapshot(nullptr)
 {
     metadataFile = "RaftNode" + std::to_string(id) + ".json";
     matchIndex.resize(peerRpcPorts.size(), -1);
-    nextIndex.resize(peerRpcPorts.size(), log.size());
+    nextIndex.resize(peerRpcPorts.size(), 0);
     lastHeartbeatTimePoint = Clock::now();
 }
 
@@ -40,8 +44,36 @@ void RaftNode::start()
     auto self = shared_from_this();
     rpcServerThread = std::thread([self]()
                                   { startRaftRPCServer(self->rpcPort, self); });
-}
 
+    // Load snapshot if it exists
+    std::string snapPath = "./snapshots/node_" + std::to_string(id) + ".snap";
+    if (std::filesystem::exists(snapPath))
+    {
+        std::ifstream file(snapPath);
+        nlohmann::json jSnap;
+        file >> jSnap;
+        file.close();
+
+        auto snap = std::make_shared<Snapshot>();
+        snap->lastIncludedIndex = jSnap["metadata"]["lastIncludedIndex"];
+        snap->lastIncludedTerm = jSnap["metadata"]["lastIncludedTerm"];
+
+        // Convert std::map to std::unordered_map
+        auto tempMap = jSnap["state"].get<std::map<std::string, std::string>>();
+        snap->kvState = std::unordered_map<std::string, std::string>(
+            tempMap.begin(), tempMap.end());
+
+        latestSnapshot = snap;
+
+        // Apply to state machine
+        store.loadFromMap(snap->kvState);
+        lastApplied = snap->lastIncludedIndex;
+        commitIndex = snap->lastIncludedIndex;
+
+        std::cout << "[Node " << id << "] Restored snapshot: lastIncludedIndex="
+                  << snap->lastIncludedIndex << ", entries=" << snap->kvState.size() << "\n";
+    }
+}
 RaftNode::~RaftNode()
 {
     if (shutdownRequested.exchange(true))
@@ -54,6 +86,161 @@ RaftNode::~RaftNode()
         shutdownNode();
     }
     std::cout << "[Node " << id << "] Destroyed\n";
+}
+
+int RaftNode::getLogTerm(int index) const
+
+{
+
+    // Check if index is in snapshot range
+
+    if (latestSnapshot && index <= latestSnapshot->lastIncludedIndex)
+
+    {
+
+        if (index == latestSnapshot->lastIncludedIndex)
+
+        {
+
+            return latestSnapshot->lastIncludedTerm;
+        }
+
+        // Index is before snapshot - this shouldn't happen in normal operation
+
+        return 0;
+    }
+
+    // Calculate position in actual log array
+
+    int logIndex = index;
+
+    if (latestSnapshot)
+
+    {
+
+        logIndex = index - latestSnapshot->lastIncludedIndex - 1;
+    }
+
+    // Check bounds
+
+    if (logIndex < 0 || logIndex >= (int)log.size())
+
+    {
+
+        return 0; // Invalid index
+    }
+
+    return log[logIndex].term;
+}
+
+// Also update getLogSize() to account for snapshot:
+
+int RaftNode::getLogSize() const
+
+{
+
+    int baseIndex = 0;
+
+    if (latestSnapshot)
+
+    {
+
+        baseIndex = latestSnapshot->lastIncludedIndex + 1;
+    }
+
+    return baseIndex + log.size();
+}
+
+// And update getLogEntries to handle snapshot offset:
+
+std::vector<logEntry> RaftNode::getLogEntries(int startIndex, int endIndex) const
+
+{
+
+    std::vector<logEntry> entries;
+
+    int baseIndex = 0;
+
+    if (latestSnapshot)
+
+    {
+
+        baseIndex = latestSnapshot->lastIncludedIndex + 1;
+    }
+
+    // Convert global indices to log array indices
+
+    int logStart = startIndex - baseIndex;
+
+    int logEnd = endIndex - baseIndex;
+
+    // Clamp to valid range
+
+    logStart = std::max(0, logStart);
+
+    logEnd = std::min((int)log.size(), logEnd);
+
+    if (logStart >= logEnd || logStart >= (int)log.size())
+
+    {
+
+        return entries; // Empty
+    }
+
+    entries.insert(entries.end(),
+
+                   log.begin() + logStart,
+
+                   log.begin() + logEnd);
+
+    return entries;
+}
+
+// Update appendLogEntry to use global indexing:
+
+void RaftNode::appendLogEntry(const logEntry &entry)
+
+{
+
+    std::lock_guard<std::mutex> lock(mtx);
+
+    log.push_back(entry);
+}
+
+// Update truncateLogSafe to properly handle snapshot:
+
+void RaftNode::truncateLogSafe(int lastIncludedIndex)
+{
+
+    // Get the OLD snapshot index (before updating)
+    int oldSnapshotIndex = latestSnapshot ? latestSnapshot->lastIncludedIndex : -1;
+
+    // Only skip if we're moving backward relative to OLD snapshot
+    if (lastIncludedIndex <= oldSnapshotIndex)
+    {
+        std::cout << "[Node " << id << "] Skipping truncation at " << lastIncludedIndex
+                  << " (current snapshot at " << oldSnapshotIndex << ")\n";
+        return;
+    }
+
+    // Calculate how many entries to remove from the beginning
+    int baseIndex = oldSnapshotIndex + 1;
+    int truncateAtLogIndex = lastIncludedIndex - baseIndex + 1;
+
+    std::cout << "[Node " << id << "] Truncating: lastIncludedIndex=" << lastIncludedIndex
+              << ", oldSnapshotIndex=" << oldSnapshotIndex
+              << ", baseIndex=" << baseIndex
+              << ", truncateAtLogIndex=" << truncateAtLogIndex
+              << ", log.size()=" << log.size() << "\n";
+
+    if (truncateAtLogIndex > 0 && truncateAtLogIndex <= (int)log.size())
+    {
+        log.erase(log.begin(), log.begin() + truncateAtLogIndex);
+
+        std::cout << "[Node " << id << "] Truncated log up to index "
+                  << lastIncludedIndex << ", " << log.size()
+                  << " entries remaining\n";
+    }
 }
 
 void RaftNode::shutdownNode()
@@ -160,16 +347,120 @@ void send_heartbeats(std::shared_ptr<RaftNode> leader, std::vector<std::shared_p
 
                 try
                 {
+                    auto snapshot = leader->latestSnapshot;
                     int nextIdx = leader->nextIndex[peerIdx];
-                    int prevIndex = nextIdx - 1;
-                    int prevTerm = (prevIndex >= 0 && prevIndex < (int)leader->log.size()) ? leader->log[prevIndex].term : 0;
 
-                    json entries = json::array();
-                    if (nextIdx < (int)leader->log.size())
+                    // FIX: Check if follower needs snapshot BEFORE trying AppendEntries
+                    if (snapshot && nextIdx <= snapshot->lastIncludedIndex)
                     {
-                        for (int i = nextIdx; i < (int)leader->log.size(); i++)
+                        std::cout << "[Leader " << leader->id << "] Peer " << peerIdx
+                                  << " needs snapshot (nextIdx=" << nextIdx
+                                  << ", snapshot=" << snapshot->lastIncludedIndex << ")\n";
+
+                        std::vector<char> snapBytes = serializeSnapshot(*snapshot);
+                        int chunkSize = 512;
+
+                        std::cout << "[Leader " << leader->id << "] Starting snapshot transfer to node " << peerIdx
+                                  << ", total size: " << snapBytes.size()
+                                  << " bytes, chunk size: " << chunkSize << "\n";
+
+                        bool snapshotSuccess = true;
+                        int chunkCount = (snapBytes.size() + chunkSize - 1) / chunkSize;
+
+                        for (int chunkNum = 0; chunkNum < chunkCount && snapshotSuccess; chunkNum++)
                         {
-                            entries.push_back(leader->log[i]);
+                            int offset = chunkNum * chunkSize;
+                            int end = std::min(offset + chunkSize, (int)snapBytes.size());
+                            std::vector<char> chunk(snapBytes.begin() + offset, snapBytes.begin() + end);
+
+                            std::string chunkBase64 = base64Encode(chunk);
+
+                            nlohmann::json j;
+                            j["rpc"] = "InstallSnapshot";
+                            j["term"] = leader->currentTerm;
+                            j["leaderId"] = leader->id;
+                            j["lastIncludedIndex"] = snapshot->lastIncludedIndex;
+                            j["lastIncludedTerm"] = snapshot->lastIncludedTerm;
+                            j["offset"] = offset;
+                            j["data"] = chunkBase64;
+                            j["done"] = (end == snapBytes.size());
+                            j["chunkNum"] = chunkNum;
+                            j["totalChunks"] = chunkCount;
+
+                            std::string jsonStr = j.dump();
+
+                            if (jsonStr.length() > 2040)
+                            {
+                                std::cerr << "[Leader " << leader->id << "] JSON too large: " << jsonStr.length()
+                                          << " bytes, reducing chunk size\n";
+                                chunkSize = chunkSize / 2;
+                                chunkCount = (snapBytes.size() + chunkSize - 1) / chunkSize;
+                                chunkNum = -1;
+                                continue;
+                            }
+
+                            std::cout << "[Leader " << leader->id << "] Sending chunk " << (chunkNum + 1)
+                                      << "/" << chunkCount << " (offset=" << offset
+                                      << ", size=" << chunk.size() << ", JSON size=" << jsonStr.length() << ")\n";
+
+                            std::string snapRespStr = sendRPC("127.0.0.1", peerPort, jsonStr);
+
+                            if (snapRespStr.empty())
+                            {
+                                std::cerr << "[Leader " << leader->id << "] Empty response for snapshot chunk " << (chunkNum + 1) << "\n";
+                                snapshotSuccess = false;
+                                break;
+                            }
+
+                            try
+                            {
+                                auto snapRespJson = nlohmann::json::parse(snapRespStr);
+                                bool accepted = snapRespJson.value("success", false);
+
+                                if (!accepted)
+                                {
+                                    std::string error = snapRespJson.value("error", "unknown");
+                                    std::cerr << "[Leader " << leader->id << "] Snapshot chunk " << (chunkNum + 1)
+                                              << " rejected: " << error << "\n";
+                                    snapshotSuccess = false;
+                                    break;
+                                }
+
+                                if (end == snapBytes.size() && accepted)
+                                {
+                                    leader->nextIndex[peerIdx] = snapshot->lastIncludedIndex + 1;
+                                    leader->matchIndex[peerIdx] = snapshot->lastIncludedIndex;
+                                    std::cout << "[Leader " << leader->id << "] Successfully sent complete snapshot to follower "
+                                              << peerIdx << " at index " << snapshot->lastIncludedIndex << "\n";
+                                }
+                            }
+                            catch (const nlohmann::json::parse_error &e)
+                            {
+                                std::cerr << "[Leader " << leader->id << "] JSON parse error in snapshot response: " << e.what() << "\n";
+                                snapshotSuccess = false;
+                                break;
+                            }
+                        }
+
+                        // Skip AppendEntries for this peer in this iteration
+                        continue;
+                    }
+
+                    // Normal AppendEntries flow
+                    int prevIndex = nextIdx - 1;
+                    int prevTerm = leader->getLogTerm(prevIndex);
+
+                    int currentLogSize = leader->getLogSize();
+                    json entries = json::array();
+
+                    if (nextIdx < currentLogSize)
+                    {
+                        const int MAX_ENTRIES_PER_BATCH = 20;
+                        int endIndex = std::min(nextIdx + MAX_ENTRIES_PER_BATCH, currentLogSize);
+                        auto logEntries = leader->getLogEntries(nextIdx, endIndex);
+                        for (const auto &entry : logEntries)
+                        {
+                            entries.push_back(entry);
                         }
                     }
 
@@ -214,12 +505,14 @@ void send_heartbeats(std::shared_ptr<RaftNode> leader, std::vector<std::shared_p
 
                     if (resp.success && !entries.empty())
                     {
-                        leader->nextIndex[peerIdx] = leader->log.size();
-                        leader->matchIndex[peerIdx] = leader->log.size() - 1;
+                        leader->nextIndex[peerIdx] = nextIdx + entries.size();
+                        leader->matchIndex[peerIdx] = nextIdx + entries.size() - 1;
                     }
-                    else if (!resp.success && leader->nextIndex[peerIdx] > 0)
+                    else if (!resp.success)
                     {
-                        leader->nextIndex[peerIdx]--;
+                        // Decrement nextIndex and try again next iteration
+                        if (leader->nextIndex[peerIdx] > 0)
+                            leader->nextIndex[peerIdx]--;
                     }
                 }
                 catch (const std::exception &e)
@@ -275,8 +568,9 @@ void start_election(std::shared_ptr<RaftNode> candidate, std::vector<std::shared
         RequestVoteRPC req{
             candidate->currentTerm,
             candidate->id,
-            candidate->log.empty() ? -1 : (int)candidate->log.size() - 1,
-            candidate->log.empty() ? 0 : candidate->log.back().term};
+            candidate->getLogSize() - 1,                       // ✅ Use getLogSize() not log.size()
+            candidate->getLogTerm(candidate->getLogSize() - 1) // ✅ Get term correctly
+        };
 
         std::string responseStr = sendRPC("127.0.0.1", peerPort, nlohmann::json(req).dump());
 
@@ -349,7 +643,7 @@ void start_election(std::shared_ptr<RaftNode> candidate, std::vector<std::shared
 
             for (size_t i = 0; i < candidate->nextIndex.size(); i++)
             {
-                candidate->nextIndex[i] = candidate->log.size();
+                candidate->nextIndex[i] = candidate->getLogSize();
                 candidate->matchIndex[i] = -1;
             }
         }
@@ -433,6 +727,31 @@ std::string RaftNode::applyToStateMachine(const std::string &command)
 
     return result;
 }
+std::vector<char> serializeSnapshot(const Snapshot &snap)
+{
+    std::ostringstream oss(std::ios::binary);
+
+    // Metadata
+    oss.write((char *)&snap.lastIncludedIndex, sizeof(snap.lastIncludedIndex));
+    oss.write((char *)&snap.lastIncludedTerm, sizeof(snap.lastIncludedTerm));
+
+    // State map
+    int size = snap.kvState.size();
+    oss.write((char *)&size, sizeof(size));
+
+    for (auto &[k, v] : snap.kvState)
+    {
+        int klen = k.size();
+        int vlen = v.size();
+        oss.write((char *)&klen, sizeof(klen));
+        oss.write(k.data(), klen);
+        oss.write((char *)&vlen, sizeof(vlen));
+        oss.write(v.data(), vlen);
+    }
+
+    std::string str = oss.str();
+    return std::vector<char>(str.begin(), str.end());
+}
 
 std::string RaftNode::handleClientCommand(const std::string &clientId, int requestId, const std::string command, const std::string key, const std::string value)
 {
@@ -451,14 +770,13 @@ std::string RaftNode::handleClientCommand(const std::string &clientId, int reque
 
     std::string sendCommand = command + " " + key + " " + value;
 
+    int newIndex;
     {
         std::lock_guard<std::mutex> lock(mtx);
-        logEntry entry{currentTerm, (int)log.size(), sendCommand};
+        newIndex = getLogSize(); // This will be the index of the new entry
+        logEntry entry{currentTerm, newIndex, sendCommand};
         log.push_back(entry);
-        std::cout << "[Leader " << id << "] Appended command to log: " << sendCommand << "\n";
     }
-
-    int newIndex = (int)log.size() - 1;
     int successCount = 1;
 
     for (size_t i = 0; i < peerRpcPorts.size(); i++)
@@ -469,15 +787,14 @@ std::string RaftNode::handleClientCommand(const std::string &clientId, int reque
         int port = peerRpcPorts[i];
         int nextIdx = nextIndex[i];
         int prevIndex = nextIdx - 1;
-        int prevTerm = (prevIndex >= 0 && prevIndex < (int)log.size()) ? log[prevIndex].term : 0;
+        int prevTerm = getLogTerm(prevIndex);
 
         json entries = json::array();
-        for (int j = nextIdx; j <= newIndex; j++)
+
+        auto logEntries = getLogEntries(nextIdx, newIndex + 1);
+        for (const auto &logEntry : logEntries)
         {
-            if (j < (int)log.size())
-            {
-                entries.push_back(log[j]);
-            }
+            entries.push_back(logEntry);
         }
 
         AppendEntriesRPC msg{currentTerm, id, prevIndex, prevTerm, entries, commitIndex};
@@ -511,6 +828,99 @@ std::string RaftNode::handleClientCommand(const std::string &clientId, int reque
             {
                 if (nextIndex[i] > 0)
                     nextIndex[i]--;
+
+                auto snapshot = latestSnapshot;
+
+                if (snapshot && nextIndex[i] <= snapshot->lastIncludedIndex)
+                {
+                    std::vector<char> snapBytes = serializeSnapshot(*snapshot);
+
+                    int chunkSize = 512; // Conservative chunk size
+
+                    std::cout << "[Leader " << id << "] Starting snapshot transfer to node " << i
+                              << ", total size: " << snapBytes.size()
+                              << " bytes, chunk size: " << chunkSize << "\n";
+
+                    bool snapshotSuccess = true;
+                    int chunkCount = (snapBytes.size() + chunkSize - 1) / chunkSize;
+
+                    for (int chunkNum = 0; chunkNum < chunkCount && snapshotSuccess; chunkNum++)
+                    {
+                        int offset = chunkNum * chunkSize;
+                        int end = std::min(offset + chunkSize, (int)snapBytes.size());
+                        std::vector<char> chunk(snapBytes.begin() + offset, snapBytes.begin() + end);
+
+                        std::string chunkBase64 = base64Encode(chunk);
+
+                        // Validate the final JSON size before sending
+                        nlohmann::json j;
+                        j["rpc"] = "InstallSnapshot";
+                        j["term"] = currentTerm;
+                        j["leaderId"] = id;
+                        j["lastIncludedIndex"] = snapshot->lastIncludedIndex;
+                        j["lastIncludedTerm"] = snapshot->lastIncludedTerm;
+                        j["offset"] = offset;
+                        j["data"] = chunkBase64;
+                        j["done"] = (end == snapBytes.size());
+                        j["chunkNum"] = chunkNum;
+                        j["totalChunks"] = chunkCount;
+
+                        std::string jsonStr = j.dump();
+
+                        // Safety check: ensure JSON fits in buffer
+                        if (jsonStr.length() > 2040) // Leave small safety margin
+                        {
+                            std::cerr << "[Leader " << id << "] JSON too large: " << jsonStr.length()
+                                      << " bytes, reducing chunk size\n";
+                            chunkSize = chunkSize / 2;
+                            chunkCount = (snapBytes.size() + chunkSize - 1) / chunkSize;
+                            chunkNum = -1; // Restart loop
+                            continue;
+                        }
+
+                        std::cout << "[Leader " << id << "] Sending chunk " << (chunkNum + 1)
+                                  << "/" << chunkCount << " (offset=" << offset
+                                  << ", size=" << chunk.size() << ", JSON size=" << jsonStr.length() << ")\n";
+
+                        std::string snapRespStr = sendRPC("127.0.0.1", port, jsonStr);
+
+                        if (snapRespStr.empty())
+                        {
+                            std::cerr << "[Leader " << id << "] Empty response for snapshot chunk " << (chunkNum + 1) << "\n";
+                            snapshotSuccess = false;
+                            break;
+                        }
+
+                        try
+                        {
+                            auto snapRespJson = nlohmann::json::parse(snapRespStr);
+                            bool accepted = snapRespJson.value("success", false);
+
+                            if (!accepted)
+                            {
+                                std::string error = snapRespJson.value("error", "unknown");
+                                std::cerr << "[Leader " << id << "] Snapshot chunk " << (chunkNum + 1)
+                                          << " rejected: " << error << "\n";
+                                snapshotSuccess = false;
+                                break;
+                            }
+
+                            if (end == snapBytes.size() && accepted)
+                            {
+                                nextIndex[i] = snapshot->lastIncludedIndex + 1;
+                                matchIndex[i] = snapshot->lastIncludedIndex;
+                                std::cout << "[Leader " << id << "] Successfully sent complete snapshot to follower "
+                                          << i << " at index " << snapshot->lastIncludedIndex << "\n";
+                            }
+                        }
+                        catch (const nlohmann::json::parse_error &e)
+                        {
+                            std::cerr << "[Leader " << id << "] JSON parse error in snapshot response: " << e.what() << "\n";
+                            snapshotSuccess = false;
+                            break;
+                        }
+                    }
+                }
             }
         }
         catch (...)
@@ -522,15 +932,77 @@ std::string RaftNode::handleClientCommand(const std::string &clientId, int reque
         return "error: shutdown";
 
     std::string applyResult = "";
-    if (log[newIndex].term == currentTerm && successCount > (peerRpcPorts.size() + 1) / 2)
+    if (getLogTerm(newIndex) == currentTerm &&
+        successCount > (peerRpcPorts.size() + 1) / 2)
     {
         std::lock_guard<std::mutex> lock(mtx);
         commitIndex = newIndex;
         while (lastApplied < commitIndex && !shutdownRequested.load())
         {
             lastApplied++;
-            applyResult = applyToStateMachine(log[lastApplied].command);
+
+            // Calculate actual log index
+            int logIdx = lastApplied;
+            if (latestSnapshot)
+            {
+                logIdx = lastApplied - latestSnapshot->lastIncludedIndex - 1;
+            }
+
+            if (logIdx >= 0 && logIdx < (int)log.size())
+            {
+                applyResult = applyToStateMachine(log[logIdx].command);
+            }
         }
+        int totalLogSize = getLogSize();
+
+        std::cout << "[Node " << id << "] After applying: totalLogSize=" << totalLogSize
+                  << ", log.size()=" << log.size()
+                  << ", lastApplied=" << lastApplied << "\n";
+
+        // FIX: Check getLogSize() not log.size()
+        if ((int)log.size() >= SNAPSHOT_THRESHOLD)
+        {
+            std::cout << "[Node " << id << "] STARTING snapshot creation at totalLogSize="
+                      << totalLogSize << ", lastApplied=" << lastApplied << "\n";
+
+            auto newSnapshot = std::make_shared<Snapshot>();
+            newSnapshot->lastIncludedIndex = lastApplied;
+            newSnapshot->lastIncludedTerm = getLogTerm(lastApplied);
+
+            std::cout << "[Node " << id << "] About to dump KV store...\n";
+            {
+                std::lock_guard<std::mutex> storeLock(store_mutex);
+                newSnapshot->kvState = store.dumpToMap();
+            }
+
+            saveSnapshot(*newSnapshot, id);
+
+            truncateLogSafe(newSnapshot->lastIncludedIndex);
+
+            latestSnapshot = newSnapshot;
+
+            store.writeAheadLog_truncate(newSnapshot->lastIncludedIndex);
+
+            for (size_t i = 0; i < nextIndex.size(); i++)
+            {
+                if (nextIndex[i] <= newSnapshot->lastIncludedIndex)
+                {
+                    nextIndex[i] = newSnapshot->lastIncludedIndex + 1;
+                }
+            }
+
+            persistMetadata(shared_from_this());
+
+            std::cout << "[Node " << id << "] Created snapshot at index "
+                      << newSnapshot->lastIncludedIndex
+                      << " (term " << newSnapshot->lastIncludedTerm << ")\n";
+        }
+        else
+        {
+            std::cout << "[Node " << id << "] Snapshot not triggered: "
+                      << totalLogSize << " < " << SNAPSHOT_THRESHOLD << "\n";
+        }
+
         {
             std::lock_guard<std::mutex> lock(clientMutex);
             clientLastRequest[clientId] = requestId;
@@ -641,9 +1113,50 @@ void raftAlgorithm()
                             { election_timer(node, nodes); });
     }
 
+    std::shared_ptr<RaftNode> leader = nullptr;
+
+    // Wait up to some timeout
+    auto start = std::chrono::steady_clock::now();
+    while (!leader)
+    {
+        for (auto &node : nodes)
+        {
+            if (node->state == NodeState::LEADER)
+            {
+                leader = node;
+                break;
+            }
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+        // Optional timeout to avoid infinite loop
+        auto now = std::chrono::steady_clock::now();
+        if (std::chrono::duration_cast<std::chrono::seconds>(now - start).count() > 10)
+        {
+            std::cout << "No leader elected in 10 seconds!\n";
+            return;
+        }
+    }
+
+    std::cout << "Leader elected: Node " << leader->id << "\n";
+    std::this_thread::sleep_for(std::chrono::seconds(3));
+
+    
+
     while (!raftShutdownRequested.load())
     {
         std::this_thread::sleep_for(std::chrono::milliseconds(200));
+    }
+    // Print final state
+    std::cout << "\n=== FINAL STATE ===\n";
+    for (auto &node : nodes)
+    {
+        std::cout << "Node " << node->id
+                  << ": lastApplied=" << node->lastApplied
+                  << ", commitIndex=" << node->commitIndex
+                  << ", log.size()=" << node->log.size()
+                  << ", snapshot=" << (node->latestSnapshot ? std::to_string(node->latestSnapshot->lastIncludedIndex) : "none")
+                  << "\n";
     }
 
     std::cout << "Shutting down Raft cluster...\n";

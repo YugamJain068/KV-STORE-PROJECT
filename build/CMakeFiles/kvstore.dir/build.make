@@ -167,6 +167,34 @@ CMakeFiles/kvstore.dir/src/persist_functions.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/kvstore.dir/src/persist_functions.cpp.s"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/yugam05/kvstore_project/src/persist_functions.cpp -o CMakeFiles/kvstore.dir/src/persist_functions.cpp.s
 
+CMakeFiles/kvstore.dir/src/snapshot.cpp.o: CMakeFiles/kvstore.dir/flags.make
+CMakeFiles/kvstore.dir/src/snapshot.cpp.o: /home/yugam05/kvstore_project/src/snapshot.cpp
+CMakeFiles/kvstore.dir/src/snapshot.cpp.o: CMakeFiles/kvstore.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/yugam05/kvstore_project/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_8) "Building CXX object CMakeFiles/kvstore.dir/src/snapshot.cpp.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/kvstore.dir/src/snapshot.cpp.o -MF CMakeFiles/kvstore.dir/src/snapshot.cpp.o.d -o CMakeFiles/kvstore.dir/src/snapshot.cpp.o -c /home/yugam05/kvstore_project/src/snapshot.cpp
+
+CMakeFiles/kvstore.dir/src/snapshot.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/kvstore.dir/src/snapshot.cpp.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/yugam05/kvstore_project/src/snapshot.cpp > CMakeFiles/kvstore.dir/src/snapshot.cpp.i
+
+CMakeFiles/kvstore.dir/src/snapshot.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/kvstore.dir/src/snapshot.cpp.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/yugam05/kvstore_project/src/snapshot.cpp -o CMakeFiles/kvstore.dir/src/snapshot.cpp.s
+
+CMakeFiles/kvstore.dir/src/decode_encodebase64.cpp.o: CMakeFiles/kvstore.dir/flags.make
+CMakeFiles/kvstore.dir/src/decode_encodebase64.cpp.o: /home/yugam05/kvstore_project/src/decode_encodebase64.cpp
+CMakeFiles/kvstore.dir/src/decode_encodebase64.cpp.o: CMakeFiles/kvstore.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/yugam05/kvstore_project/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_9) "Building CXX object CMakeFiles/kvstore.dir/src/decode_encodebase64.cpp.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/kvstore.dir/src/decode_encodebase64.cpp.o -MF CMakeFiles/kvstore.dir/src/decode_encodebase64.cpp.o.d -o CMakeFiles/kvstore.dir/src/decode_encodebase64.cpp.o -c /home/yugam05/kvstore_project/src/decode_encodebase64.cpp
+
+CMakeFiles/kvstore.dir/src/decode_encodebase64.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/kvstore.dir/src/decode_encodebase64.cpp.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/yugam05/kvstore_project/src/decode_encodebase64.cpp > CMakeFiles/kvstore.dir/src/decode_encodebase64.cpp.i
+
+CMakeFiles/kvstore.dir/src/decode_encodebase64.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/kvstore.dir/src/decode_encodebase64.cpp.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/yugam05/kvstore_project/src/decode_encodebase64.cpp -o CMakeFiles/kvstore.dir/src/decode_encodebase64.cpp.s
+
 # Object files for target kvstore
 kvstore_OBJECTS = \
 "CMakeFiles/kvstore.dir/src/main.cpp.o" \
@@ -175,7 +203,9 @@ kvstore_OBJECTS = \
 "CMakeFiles/kvstore.dir/src/wal.cpp.o" \
 "CMakeFiles/kvstore.dir/src/server.cpp.o" \
 "CMakeFiles/kvstore.dir/src/rpc_server.cpp.o" \
-"CMakeFiles/kvstore.dir/src/persist_functions.cpp.o"
+"CMakeFiles/kvstore.dir/src/persist_functions.cpp.o" \
+"CMakeFiles/kvstore.dir/src/snapshot.cpp.o" \
+"CMakeFiles/kvstore.dir/src/decode_encodebase64.cpp.o"
 
 # External object files for target kvstore
 kvstore_EXTERNAL_OBJECTS =
@@ -187,9 +217,11 @@ kvstore: CMakeFiles/kvstore.dir/src/wal.cpp.o
 kvstore: CMakeFiles/kvstore.dir/src/server.cpp.o
 kvstore: CMakeFiles/kvstore.dir/src/rpc_server.cpp.o
 kvstore: CMakeFiles/kvstore.dir/src/persist_functions.cpp.o
+kvstore: CMakeFiles/kvstore.dir/src/snapshot.cpp.o
+kvstore: CMakeFiles/kvstore.dir/src/decode_encodebase64.cpp.o
 kvstore: CMakeFiles/kvstore.dir/build.make
 kvstore: CMakeFiles/kvstore.dir/link.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/home/yugam05/kvstore_project/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_8) "Linking CXX executable kvstore"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/home/yugam05/kvstore_project/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_10) "Linking CXX executable kvstore"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/kvstore.dir/link.txt --verbose=$(VERBOSE)
 
 # Rule to build all files generated by this target.

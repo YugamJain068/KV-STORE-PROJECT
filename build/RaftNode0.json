@@ -1,358 +1,157 @@
 {
     "clientLastRequest": {
-        "client-4": 3,
-        "client-5": 3,
-        "client-8": 6,
-        "client-9": 1
+        "client-4": 1
     },
     "clientResultCache": {
-        "client-4": "OK",
-        "client-5": "OK",
-        "client-8": "key not found",
-        "client-9": "OK"
+        "client-4": "key not found"
     },
-    "currentTerm": 153,
+    "currentTerm": 13,
     "logEntries": [
         {
-            "command": "PUT KEY1 VALUE1",
-            "index": 0,
-            "term": 16
+            "command": "PUT key86 val86",
+            "index": 298,
+            "term": 10
         },
         {
-            "command": "PUT KEY1 VALUE1",
-            "index": 1,
-            "term": 16
+            "command": "PUT key87 val87",
+            "index": 299,
+            "term": 10
         },
         {
-            "command": "GET KEY1 ",
-            "index": 2,
-            "term": 16
+            "command": "PUT key88 val88",
+            "index": 300,
+            "term": 10
         },
         {
-            "command": "PUT KEY1 VALUE1",
-            "index": 3,
-            "term": 129
+            "command": "PUT key89 val89",
+            "index": 301,
+            "term": 10
         },
         {
-            "command": "GET KEY1 ",
-            "index": 4,
-            "term": 129
+            "command": "PUT key90 val90",
+            "index": 302,
+            "term": 10
         },
         {
-            "command": "DELETE KEY1 ",
-            "index": 5,
-            "term": 129
+            "command": "PUT key91 val91",
+            "index": 303,
+            "term": 10
         },
         {
-            "command": "GET KEY1 ",
-            "index": 6,
-            "term": 129
+            "command": "PUT key92 val92",
+            "index": 304,
+            "term": 10
         },
         {
-            "command": "GET KEY1 ",
-            "index": 7,
-            "term": 129
+            "command": "PUT key93 val93",
+            "index": 305,
+            "term": 10
         },
         {
-            "command": "GET KEY1 ",
-            "index": 8,
-            "term": 129
+            "command": "PUT key94 val94",
+            "index": 306,
+            "term": 10
         },
         {
-            "command": "PUT YUGAM JAIN",
-            "index": 9,
-            "term": 129
+            "command": "PUT key95 val95",
+            "index": 307,
+            "term": 10
         },
         {
-            "command": "GET YUGAM ",
-            "index": 10,
-            "term": 129
+            "command": "PUT key96 val96",
+            "index": 308,
+            "term": 10
         },
         {
-            "command": "PUT NAMAN BULIA",
-            "index": 11,
-            "term": 130
+            "command": "PUT key97 val97",
+            "index": 309,
+            "term": 10
         },
         {
-            "command": "GET NAMAN ",
-            "index": 12,
-            "term": 130
+            "command": "PUT key98 val98",
+            "index": 310,
+            "term": 10
         },
         {
-            "command": "DELETE NAMAN ",
-            "index": 13,
-            "term": 130
+            "command": "PUT key99 val99",
+            "index": 311,
+            "term": 10
         },
         {
-            "command": "GET NAMAN ",
-            "index": 14,
-            "term": 130
+            "command": "PUT key100 val100",
+            "index": 312,
+            "term": 10
         },
         {
-            "command": "GET NAMAN ",
-            "index": 15,
-            "term": 130
+            "command": "PUT key101 val101",
+            "index": 313,
+            "term": 10
         },
         {
-            "command": "GET NAMAN ",
-            "index": 16,
-            "term": 130
+            "command": "PUT key102 val102",
+            "index": 314,
+            "term": 10
         },
         {
-            "command": "PUT KEY1 VALUE1",
-            "index": 17,
-            "term": 131
+            "command": "PUT key103 val103",
+            "index": 315,
+            "term": 10
         },
         {
-            "command": "GET KEY1 ",
-            "index": 18,
-            "term": 131
+            "command": "PUT key104 val104",
+            "index": 316,
+            "term": 10
         },
         {
-            "command": "DELETE KEY1 ",
-            "index": 19,
-            "term": 131
+            "command": "PUT key105 val105",
+            "index": 317,
+            "term": 10
         },
         {
-            "command": "GET KEY1 ",
-            "index": 20,
-            "term": 131
+            "command": "GET KEY0 ",
+            "index": 318,
+            "term": 12
         },
         {
-            "command": "GET KEY1 ",
-            "index": 21,
-            "term": 131
+            "command": "GET key0 ",
+            "index": 319,
+            "term": 12
         },
         {
-            "command": "GET KEY1 ",
-            "index": 22,
-            "term": 131
+            "command": "GET KEY ",
+            "index": 320,
+            "term": 12
         },
         {
-            "command": "PUT KEY1 VALUE100",
-            "index": 23,
-            "term": 131
+            "command": "GET KEY ",
+            "index": 321,
+            "term": 12
         },
         {
-            "command": "GET KEY1 ",
-            "index": 24,
-            "term": 131
+            "command": "GET key105 ",
+            "index": 322,
+            "term": 12
         },
         {
-            "command": "PUT YUGAM JAIN",
-            "index": 25,
-            "term": 132
+            "command": "GET key106 ",
+            "index": 323,
+            "term": 12
         },
         {
-            "command": "GET YUGAM ",
-            "index": 26,
-            "term": 132
+            "command": "DELETE key10 ",
+            "index": 324,
+            "term": 12
         },
         {
-            "command": "DELETE YUGAM ",
-            "index": 27,
-            "term": 132
+            "command": "GET key10 ",
+            "index": 325,
+            "term": 12
         },
         {
-            "command": "GET YUGAM ",
-            "index": 28,
-            "term": 132
-        },
-        {
-            "command": "GET YUGAM ",
-            "index": 29,
-            "term": 132
-        },
-        {
-            "command": "GET YUGAM ",
-            "index": 30,
-            "term": 132
-        },
-        {
-            "command": "PUT APPLE 10",
-            "index": 31,
-            "term": 133
-        },
-        {
-            "command": "GET APPLE ",
-            "index": 32,
-            "term": 133
-        },
-        {
-            "command": "DELETE APPLE ",
-            "index": 33,
-            "term": 133
-        },
-        {
-            "command": "GET APPLE ",
-            "index": 34,
-            "term": 133
-        },
-        {
-            "command": "GET APPLE ",
-            "index": 35,
-            "term": 133
-        },
-        {
-            "command": "GET APPLE ",
-            "index": 36,
-            "term": 133
-        },
-        {
-            "command": "PUT APPLE 100",
-            "index": 37,
-            "term": 133
-        },
-        {
-            "command": "GET APPLE ",
-            "index": 38,
-            "term": 133
-        },
-        {
-            "command": "DELETE APPLE ",
-            "index": 39,
-            "term": 133
-        },
-        {
-            "command": "GET APPLE ",
-            "index": 40,
-            "term": 133
-        },
-        {
-            "command": "GET APPLE ",
-            "index": 41,
-            "term": 133
-        },
-        {
-            "command": "GET APPLE ",
-            "index": 42,
-            "term": 133
-        },
-        {
-            "command": "GET APPLE ",
-            "index": 43,
-            "term": 133
-        },
-        {
-            "command": "GET APPLE ",
-            "index": 44,
-            "term": 133
-        },
-        {
-            "command": "GET APPLE ",
-            "index": 45,
-            "term": 133
-        },
-        {
-            "command": "PUT MANGO 100",
-            "index": 46,
-            "term": 135
-        },
-        {
-            "command": "PUT MANGO 200",
-            "index": 47,
-            "term": 135
-        },
-        {
-            "command": "GET MANGO ",
-            "index": 48,
-            "term": 135
-        },
-        {
-            "command": "PUT ORANGE 3000",
-            "index": 49,
-            "term": 135
-        },
-        {
-            "command": "DELETE MANGO ",
-            "index": 50,
-            "term": 135
-        },
-        {
-            "command": "GET MANGO ",
-            "index": 51,
-            "term": 135
-        },
-        {
-            "command": "GET BANANA ",
-            "index": 52,
-            "term": 135
-        },
-        {
-            "command": "GET ORANGE ",
-            "index": 53,
-            "term": 135
-        },
-        {
-            "command": "PUT ORANGE 6000",
-            "index": 54,
-            "term": 135
-        },
-        {
-            "command": "GET ORANGE ",
-            "index": 55,
-            "term": 135
-        },
-        {
-            "command": "DELETE ORANGE ",
-            "index": 56,
-            "term": 135
-        },
-        {
-            "command": "GET ORANGE ",
-            "index": 57,
-            "term": 135
-        },
-        {
-            "command": "GET ORANGE ",
-            "index": 58,
-            "term": 137
-        },
-        {
-            "command": "PUT MANGO 1000",
-            "index": 59,
-            "term": 138
-        },
-        {
-            "command": "GET MANGO ",
-            "index": 60,
-            "term": 138
-        },
-        {
-            "command": "PUT ORANGE 3000",
-            "index": 61,
-            "term": 138
-        },
-        {
-            "command": "GET MANGO ",
-            "index": 62,
-            "term": 139
-        },
-        {
-            "command": "GET ORANGE ",
-            "index": 63,
-            "term": 139
-        },
-        {
-            "command": "DELETE ORANGE ",
-            "index": 64,
-            "term": 139
-        },
-        {
-            "command": "GET PRANGE ",
-            "index": 65,
-            "term": 153
-        },
-        {
-            "command": "GET ORANGE ",
-            "index": 66,
-            "term": 153
-        },
-        {
-            "command": "GET MANGO ",
-            "index": 67,
-            "term": 153
+            "command": "GET key10 ",
+            "index": 326,
+            "term": 13
         }
     ],
-    "votedFor": 2
+    "votedFor": 0
 }

@@ -302,4 +302,5 @@ CMakeFiles/kvstore.dir/src/main.cpp.o: \
  /usr/include/nlohmann/ordered_map.hpp /usr/include/c++/13/any \
  /usr/include/nlohmann/detail/macro_unscope.hpp \
  /usr/include/nlohmann/thirdparty/hedley/hedley_undef.hpp \
+ /home/yugam05/kvstore_project/src/snapshot.h \
  /home/yugam05/kvstore_project/src/rpc_server.h

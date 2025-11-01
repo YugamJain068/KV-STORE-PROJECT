@@ -627,6 +627,7 @@ CMakeFiles/runTests.dir/src/raft_node.cpp.o
  /home/yugam05/kvstore_project/src/persist_functions.h
  /home/yugam05/kvstore_project/src/raft_node.h
  /home/yugam05/kvstore_project/src/rpc_server.h
+ /home/yugam05/kvstore_project/src/snapshot.h
  /home/yugam05/kvstore_project/src/wal.h
  /usr/include/alloca.h
  /usr/include/asm-generic/bitsperlong.h
