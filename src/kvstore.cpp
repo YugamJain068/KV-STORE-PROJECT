@@ -1,6 +1,5 @@
 #include "kvstore.h"
 #include "wal.h"
-#include <iostream>
 #include <fstream>
 
 KVStore store;
@@ -76,32 +75,6 @@ bool KVStore::remove(const std::string &key)
     return mp.erase(key) > 0;
 }
 
-void KVStore::saveToFile(const std::string &filename)
-{
-   std::unique_lock<std::shared_mutex> lock(mtx);
-    std::ofstream out(filename);
-    for (const auto &[key, value] : mp)
-    {
-        out << key << "=" << value << std::endl;
-    }
-}
-
-void KVStore::loadFromFile(const std::string &filename)
-{
-    std::ifstream in(filename);
-    std::string line;
-    std::unique_lock<std::shared_mutex> lock(mtx);
-    while (std::getline(in, line))
-    {
-        auto pos = line.find('=');
-        if (pos != std::string::npos)
-        {
-            std::string key = line.substr(0, pos);
-            std::string value = line.substr(pos + 1);
-            mp[key] = std::move(value); // i can call put function here but it will cause self-deadlock because lock is acquired in loadFromFile function and then put function will also try to lock the same mutex resulting in deadlock
-        }
-    }
-}
 
 void KVStore::writeAheadLog_truncate(int lastIncludedIndex){
     writeAheadLog.truncateUpTo(lastIncludedIndex);

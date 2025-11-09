@@ -372,4 +372,10 @@ CMakeFiles/runTests.dir/tests/raft_tests.cpp.o: \
  /usr/include/nlohmann/detail/conversions/to_chars.hpp \
  /usr/include/nlohmann/ordered_map.hpp \
  /usr/include/nlohmann/detail/macro_unscope.hpp \
- /usr/include/nlohmann/thirdparty/hedley/hedley_undef.hpp
+ /usr/include/nlohmann/thirdparty/hedley/hedley_undef.hpp \
+ /usr/include/c++/13/shared_mutex \
+ /home/yugam05/kvstore_project/tests/../src/snapshot.h \
+ /home/yugam05/kvstore_project/tests/../src/kvstore.h \
+ /home/yugam05/kvstore_project/tests/../src/wal.h \
+ /home/yugam05/kvstore_project/tests/../src/log_entry.h \
+ /home/yugam05/kvstore_project/tests/../src/metrics.h

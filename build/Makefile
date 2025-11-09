@@ -65,6 +65,16 @@ CMAKE_BINARY_DIR = /home/yugam05/kvstore_project/build
 #=============================================================================
 # Targets provided globally by CMake.
 
+# Special rule for the target test
+test:
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --cyan "Running tests..."
+	/usr/bin/ctest --force-new-ctest-process $(ARGS)
+.PHONY : test
+
+# Special rule for the target test
+test/fast: test
+.PHONY : test/fast
+
 # Special rule for the target edit_cache
 edit_cache:
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --cyan "No interactive CMake dialog available..."
@@ -84,6 +94,51 @@ rebuild_cache:
 # Special rule for the target rebuild_cache
 rebuild_cache/fast: rebuild_cache
 .PHONY : rebuild_cache/fast
+
+# Special rule for the target list_install_components
+list_install_components:
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --cyan "Available install components are: \"gmock\" \"gtest\""
+.PHONY : list_install_components
+
+# Special rule for the target list_install_components
+list_install_components/fast: list_install_components
+.PHONY : list_install_components/fast
+
+# Special rule for the target install
+install: preinstall
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --cyan "Install the project..."
+	/usr/bin/cmake -P cmake_install.cmake
+.PHONY : install
+
+# Special rule for the target install
+install/fast: preinstall/fast
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --cyan "Install the project..."
+	/usr/bin/cmake -P cmake_install.cmake
+.PHONY : install/fast
+
+# Special rule for the target install/local
+install/local: preinstall
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --cyan "Installing only the local directory..."
+	/usr/bin/cmake -DCMAKE_INSTALL_LOCAL_ONLY=1 -P cmake_install.cmake
+.PHONY : install/local
+
+# Special rule for the target install/local
+install/local/fast: preinstall/fast
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --cyan "Installing only the local directory..."
+	/usr/bin/cmake -DCMAKE_INSTALL_LOCAL_ONLY=1 -P cmake_install.cmake
+.PHONY : install/local/fast
+
+# Special rule for the target install/strip
+install/strip: preinstall
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --cyan "Installing the project stripped..."
+	/usr/bin/cmake -DCMAKE_INSTALL_DO_STRIP=1 -P cmake_install.cmake
+.PHONY : install/strip
+
+# Special rule for the target install/strip
+install/strip/fast: preinstall/fast
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --cyan "Installing the project stripped..."
+	/usr/bin/cmake -DCMAKE_INSTALL_DO_STRIP=1 -P cmake_install.cmake
+.PHONY : install/strip/fast
 
 # The main all target
 all: cmake_check_build_system
@@ -129,12 +184,78 @@ kvstore/fast:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/kvstore.dir/build.make CMakeFiles/kvstore.dir/build
 .PHONY : kvstore/fast
 
+#=============================================================================
+# Target rules for targets named runTests
+
+# Build rule for target.
+runTests: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 runTests
+.PHONY : runTests
+
+# fast build rule for target.
+runTests/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runTests.dir/build.make CMakeFiles/runTests.dir/build
+.PHONY : runTests/fast
+
+#=============================================================================
+# Target rules for targets named gmock
+
+# Build rule for target.
+gmock: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 gmock
+.PHONY : gmock
+
+# fast build rule for target.
+gmock/fast:
+	$(MAKE) $(MAKESILENT) -f googletest/googlemock/CMakeFiles/gmock.dir/build.make googletest/googlemock/CMakeFiles/gmock.dir/build
+.PHONY : gmock/fast
+
+#=============================================================================
+# Target rules for targets named gmock_main
+
+# Build rule for target.
+gmock_main: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 gmock_main
+.PHONY : gmock_main
+
+# fast build rule for target.
+gmock_main/fast:
+	$(MAKE) $(MAKESILENT) -f googletest/googlemock/CMakeFiles/gmock_main.dir/build.make googletest/googlemock/CMakeFiles/gmock_main.dir/build
+.PHONY : gmock_main/fast
+
+#=============================================================================
+# Target rules for targets named gtest
+
+# Build rule for target.
+gtest: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 gtest
+.PHONY : gtest
+
+# fast build rule for target.
+gtest/fast:
+	$(MAKE) $(MAKESILENT) -f googletest/googletest/CMakeFiles/gtest.dir/build.make googletest/googletest/CMakeFiles/gtest.dir/build
+.PHONY : gtest/fast
+
+#=============================================================================
+# Target rules for targets named gtest_main
+
+# Build rule for target.
+gtest_main: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 gtest_main
+.PHONY : gtest_main
+
+# fast build rule for target.
+gtest_main/fast:
+	$(MAKE) $(MAKESILENT) -f googletest/googletest/CMakeFiles/gtest_main.dir/build.make googletest/googletest/CMakeFiles/gtest_main.dir/build
+.PHONY : gtest_main/fast
+
 src/decode_encodebase64.o: src/decode_encodebase64.cpp.o
 .PHONY : src/decode_encodebase64.o
 
 # target to build an object file
 src/decode_encodebase64.cpp.o:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/kvstore.dir/build.make CMakeFiles/kvstore.dir/src/decode_encodebase64.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runTests.dir/build.make CMakeFiles/runTests.dir/src/decode_encodebase64.cpp.o
 .PHONY : src/decode_encodebase64.cpp.o
 
 src/decode_encodebase64.i: src/decode_encodebase64.cpp.i
@@ -143,6 +264,7 @@ src/decode_encodebase64.i: src/decode_encodebase64.cpp.i
 # target to preprocess a source file
 src/decode_encodebase64.cpp.i:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/kvstore.dir/build.make CMakeFiles/kvstore.dir/src/decode_encodebase64.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runTests.dir/build.make CMakeFiles/runTests.dir/src/decode_encodebase64.cpp.i
 .PHONY : src/decode_encodebase64.cpp.i
 
 src/decode_encodebase64.s: src/decode_encodebase64.cpp.s
@@ -151,6 +273,7 @@ src/decode_encodebase64.s: src/decode_encodebase64.cpp.s
 # target to generate assembly for a file
 src/decode_encodebase64.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/kvstore.dir/build.make CMakeFiles/kvstore.dir/src/decode_encodebase64.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runTests.dir/build.make CMakeFiles/runTests.dir/src/decode_encodebase64.cpp.s
 .PHONY : src/decode_encodebase64.cpp.s
 
 src/kvstore.o: src/kvstore.cpp.o
@@ -159,6 +282,7 @@ src/kvstore.o: src/kvstore.cpp.o
 # target to build an object file
 src/kvstore.cpp.o:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/kvstore.dir/build.make CMakeFiles/kvstore.dir/src/kvstore.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runTests.dir/build.make CMakeFiles/runTests.dir/src/kvstore.cpp.o
 .PHONY : src/kvstore.cpp.o
 
 src/kvstore.i: src/kvstore.cpp.i
@@ -167,6 +291,7 @@ src/kvstore.i: src/kvstore.cpp.i
 # target to preprocess a source file
 src/kvstore.cpp.i:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/kvstore.dir/build.make CMakeFiles/kvstore.dir/src/kvstore.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runTests.dir/build.make CMakeFiles/runTests.dir/src/kvstore.cpp.i
 .PHONY : src/kvstore.cpp.i
 
 src/kvstore.s: src/kvstore.cpp.s
@@ -175,7 +300,35 @@ src/kvstore.s: src/kvstore.cpp.s
 # target to generate assembly for a file
 src/kvstore.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/kvstore.dir/build.make CMakeFiles/kvstore.dir/src/kvstore.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runTests.dir/build.make CMakeFiles/runTests.dir/src/kvstore.cpp.s
 .PHONY : src/kvstore.cpp.s
+
+src/logger.o: src/logger.cpp.o
+.PHONY : src/logger.o
+
+# target to build an object file
+src/logger.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/kvstore.dir/build.make CMakeFiles/kvstore.dir/src/logger.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runTests.dir/build.make CMakeFiles/runTests.dir/src/logger.cpp.o
+.PHONY : src/logger.cpp.o
+
+src/logger.i: src/logger.cpp.i
+.PHONY : src/logger.i
+
+# target to preprocess a source file
+src/logger.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/kvstore.dir/build.make CMakeFiles/kvstore.dir/src/logger.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runTests.dir/build.make CMakeFiles/runTests.dir/src/logger.cpp.i
+.PHONY : src/logger.cpp.i
+
+src/logger.s: src/logger.cpp.s
+.PHONY : src/logger.s
+
+# target to generate assembly for a file
+src/logger.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/kvstore.dir/build.make CMakeFiles/kvstore.dir/src/logger.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runTests.dir/build.make CMakeFiles/runTests.dir/src/logger.cpp.s
+.PHONY : src/logger.cpp.s
 
 src/main.o: src/main.cpp.o
 .PHONY : src/main.o
@@ -207,6 +360,7 @@ src/persist_functions.o: src/persist_functions.cpp.o
 # target to build an object file
 src/persist_functions.cpp.o:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/kvstore.dir/build.make CMakeFiles/kvstore.dir/src/persist_functions.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runTests.dir/build.make CMakeFiles/runTests.dir/src/persist_functions.cpp.o
 .PHONY : src/persist_functions.cpp.o
 
 src/persist_functions.i: src/persist_functions.cpp.i
@@ -215,6 +369,7 @@ src/persist_functions.i: src/persist_functions.cpp.i
 # target to preprocess a source file
 src/persist_functions.cpp.i:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/kvstore.dir/build.make CMakeFiles/kvstore.dir/src/persist_functions.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runTests.dir/build.make CMakeFiles/runTests.dir/src/persist_functions.cpp.i
 .PHONY : src/persist_functions.cpp.i
 
 src/persist_functions.s: src/persist_functions.cpp.s
@@ -223,6 +378,7 @@ src/persist_functions.s: src/persist_functions.cpp.s
 # target to generate assembly for a file
 src/persist_functions.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/kvstore.dir/build.make CMakeFiles/kvstore.dir/src/persist_functions.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runTests.dir/build.make CMakeFiles/runTests.dir/src/persist_functions.cpp.s
 .PHONY : src/persist_functions.cpp.s
 
 src/raft_node.o: src/raft_node.cpp.o
@@ -231,6 +387,7 @@ src/raft_node.o: src/raft_node.cpp.o
 # target to build an object file
 src/raft_node.cpp.o:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/kvstore.dir/build.make CMakeFiles/kvstore.dir/src/raft_node.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runTests.dir/build.make CMakeFiles/runTests.dir/src/raft_node.cpp.o
 .PHONY : src/raft_node.cpp.o
 
 src/raft_node.i: src/raft_node.cpp.i
@@ -239,6 +396,7 @@ src/raft_node.i: src/raft_node.cpp.i
 # target to preprocess a source file
 src/raft_node.cpp.i:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/kvstore.dir/build.make CMakeFiles/kvstore.dir/src/raft_node.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runTests.dir/build.make CMakeFiles/runTests.dir/src/raft_node.cpp.i
 .PHONY : src/raft_node.cpp.i
 
 src/raft_node.s: src/raft_node.cpp.s
@@ -247,6 +405,7 @@ src/raft_node.s: src/raft_node.cpp.s
 # target to generate assembly for a file
 src/raft_node.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/kvstore.dir/build.make CMakeFiles/kvstore.dir/src/raft_node.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runTests.dir/build.make CMakeFiles/runTests.dir/src/raft_node.cpp.s
 .PHONY : src/raft_node.cpp.s
 
 src/rpc_server.o: src/rpc_server.cpp.o
@@ -255,6 +414,7 @@ src/rpc_server.o: src/rpc_server.cpp.o
 # target to build an object file
 src/rpc_server.cpp.o:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/kvstore.dir/build.make CMakeFiles/kvstore.dir/src/rpc_server.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runTests.dir/build.make CMakeFiles/runTests.dir/src/rpc_server.cpp.o
 .PHONY : src/rpc_server.cpp.o
 
 src/rpc_server.i: src/rpc_server.cpp.i
@@ -263,6 +423,7 @@ src/rpc_server.i: src/rpc_server.cpp.i
 # target to preprocess a source file
 src/rpc_server.cpp.i:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/kvstore.dir/build.make CMakeFiles/kvstore.dir/src/rpc_server.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runTests.dir/build.make CMakeFiles/runTests.dir/src/rpc_server.cpp.i
 .PHONY : src/rpc_server.cpp.i
 
 src/rpc_server.s: src/rpc_server.cpp.s
@@ -271,6 +432,7 @@ src/rpc_server.s: src/rpc_server.cpp.s
 # target to generate assembly for a file
 src/rpc_server.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/kvstore.dir/build.make CMakeFiles/kvstore.dir/src/rpc_server.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runTests.dir/build.make CMakeFiles/runTests.dir/src/rpc_server.cpp.s
 .PHONY : src/rpc_server.cpp.s
 
 src/server.o: src/server.cpp.o
@@ -279,6 +441,7 @@ src/server.o: src/server.cpp.o
 # target to build an object file
 src/server.cpp.o:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/kvstore.dir/build.make CMakeFiles/kvstore.dir/src/server.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runTests.dir/build.make CMakeFiles/runTests.dir/src/server.cpp.o
 .PHONY : src/server.cpp.o
 
 src/server.i: src/server.cpp.i
@@ -287,6 +450,7 @@ src/server.i: src/server.cpp.i
 # target to preprocess a source file
 src/server.cpp.i:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/kvstore.dir/build.make CMakeFiles/kvstore.dir/src/server.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runTests.dir/build.make CMakeFiles/runTests.dir/src/server.cpp.i
 .PHONY : src/server.cpp.i
 
 src/server.s: src/server.cpp.s
@@ -295,6 +459,7 @@ src/server.s: src/server.cpp.s
 # target to generate assembly for a file
 src/server.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/kvstore.dir/build.make CMakeFiles/kvstore.dir/src/server.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runTests.dir/build.make CMakeFiles/runTests.dir/src/server.cpp.s
 .PHONY : src/server.cpp.s
 
 src/snapshot.o: src/snapshot.cpp.o
@@ -303,6 +468,7 @@ src/snapshot.o: src/snapshot.cpp.o
 # target to build an object file
 src/snapshot.cpp.o:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/kvstore.dir/build.make CMakeFiles/kvstore.dir/src/snapshot.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runTests.dir/build.make CMakeFiles/runTests.dir/src/snapshot.cpp.o
 .PHONY : src/snapshot.cpp.o
 
 src/snapshot.i: src/snapshot.cpp.i
@@ -311,6 +477,7 @@ src/snapshot.i: src/snapshot.cpp.i
 # target to preprocess a source file
 src/snapshot.cpp.i:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/kvstore.dir/build.make CMakeFiles/kvstore.dir/src/snapshot.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runTests.dir/build.make CMakeFiles/runTests.dir/src/snapshot.cpp.i
 .PHONY : src/snapshot.cpp.i
 
 src/snapshot.s: src/snapshot.cpp.s
@@ -319,6 +486,7 @@ src/snapshot.s: src/snapshot.cpp.s
 # target to generate assembly for a file
 src/snapshot.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/kvstore.dir/build.make CMakeFiles/kvstore.dir/src/snapshot.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runTests.dir/build.make CMakeFiles/runTests.dir/src/snapshot.cpp.s
 .PHONY : src/snapshot.cpp.s
 
 src/wal.o: src/wal.cpp.o
@@ -327,6 +495,7 @@ src/wal.o: src/wal.cpp.o
 # target to build an object file
 src/wal.cpp.o:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/kvstore.dir/build.make CMakeFiles/kvstore.dir/src/wal.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runTests.dir/build.make CMakeFiles/runTests.dir/src/wal.cpp.o
 .PHONY : src/wal.cpp.o
 
 src/wal.i: src/wal.cpp.i
@@ -335,6 +504,7 @@ src/wal.i: src/wal.cpp.i
 # target to preprocess a source file
 src/wal.cpp.i:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/kvstore.dir/build.make CMakeFiles/kvstore.dir/src/wal.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runTests.dir/build.make CMakeFiles/runTests.dir/src/wal.cpp.i
 .PHONY : src/wal.cpp.i
 
 src/wal.s: src/wal.cpp.s
@@ -343,7 +513,128 @@ src/wal.s: src/wal.cpp.s
 # target to generate assembly for a file
 src/wal.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/kvstore.dir/build.make CMakeFiles/kvstore.dir/src/wal.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runTests.dir/build.make CMakeFiles/runTests.dir/src/wal.cpp.s
 .PHONY : src/wal.cpp.s
+
+tests/concurrency_tests.o: tests/concurrency_tests.cpp.o
+.PHONY : tests/concurrency_tests.o
+
+# target to build an object file
+tests/concurrency_tests.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runTests.dir/build.make CMakeFiles/runTests.dir/tests/concurrency_tests.cpp.o
+.PHONY : tests/concurrency_tests.cpp.o
+
+tests/concurrency_tests.i: tests/concurrency_tests.cpp.i
+.PHONY : tests/concurrency_tests.i
+
+# target to preprocess a source file
+tests/concurrency_tests.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runTests.dir/build.make CMakeFiles/runTests.dir/tests/concurrency_tests.cpp.i
+.PHONY : tests/concurrency_tests.cpp.i
+
+tests/concurrency_tests.s: tests/concurrency_tests.cpp.s
+.PHONY : tests/concurrency_tests.s
+
+# target to generate assembly for a file
+tests/concurrency_tests.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runTests.dir/build.make CMakeFiles/runTests.dir/tests/concurrency_tests.cpp.s
+.PHONY : tests/concurrency_tests.cpp.s
+
+tests/kvstore_tests.o: tests/kvstore_tests.cpp.o
+.PHONY : tests/kvstore_tests.o
+
+# target to build an object file
+tests/kvstore_tests.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runTests.dir/build.make CMakeFiles/runTests.dir/tests/kvstore_tests.cpp.o
+.PHONY : tests/kvstore_tests.cpp.o
+
+tests/kvstore_tests.i: tests/kvstore_tests.cpp.i
+.PHONY : tests/kvstore_tests.i
+
+# target to preprocess a source file
+tests/kvstore_tests.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runTests.dir/build.make CMakeFiles/runTests.dir/tests/kvstore_tests.cpp.i
+.PHONY : tests/kvstore_tests.cpp.i
+
+tests/kvstore_tests.s: tests/kvstore_tests.cpp.s
+.PHONY : tests/kvstore_tests.s
+
+# target to generate assembly for a file
+tests/kvstore_tests.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runTests.dir/build.make CMakeFiles/runTests.dir/tests/kvstore_tests.cpp.s
+.PHONY : tests/kvstore_tests.cpp.s
+
+tests/raft_tests.o: tests/raft_tests.cpp.o
+.PHONY : tests/raft_tests.o
+
+# target to build an object file
+tests/raft_tests.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runTests.dir/build.make CMakeFiles/runTests.dir/tests/raft_tests.cpp.o
+.PHONY : tests/raft_tests.cpp.o
+
+tests/raft_tests.i: tests/raft_tests.cpp.i
+.PHONY : tests/raft_tests.i
+
+# target to preprocess a source file
+tests/raft_tests.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runTests.dir/build.make CMakeFiles/runTests.dir/tests/raft_tests.cpp.i
+.PHONY : tests/raft_tests.cpp.i
+
+tests/raft_tests.s: tests/raft_tests.cpp.s
+.PHONY : tests/raft_tests.s
+
+# target to generate assembly for a file
+tests/raft_tests.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runTests.dir/build.make CMakeFiles/runTests.dir/tests/raft_tests.cpp.s
+.PHONY : tests/raft_tests.cpp.s
+
+tests/tcp_server_tests.o: tests/tcp_server_tests.cpp.o
+.PHONY : tests/tcp_server_tests.o
+
+# target to build an object file
+tests/tcp_server_tests.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runTests.dir/build.make CMakeFiles/runTests.dir/tests/tcp_server_tests.cpp.o
+.PHONY : tests/tcp_server_tests.cpp.o
+
+tests/tcp_server_tests.i: tests/tcp_server_tests.cpp.i
+.PHONY : tests/tcp_server_tests.i
+
+# target to preprocess a source file
+tests/tcp_server_tests.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runTests.dir/build.make CMakeFiles/runTests.dir/tests/tcp_server_tests.cpp.i
+.PHONY : tests/tcp_server_tests.cpp.i
+
+tests/tcp_server_tests.s: tests/tcp_server_tests.cpp.s
+.PHONY : tests/tcp_server_tests.s
+
+# target to generate assembly for a file
+tests/tcp_server_tests.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runTests.dir/build.make CMakeFiles/runTests.dir/tests/tcp_server_tests.cpp.s
+.PHONY : tests/tcp_server_tests.cpp.s
+
+tests/wal_recovery_test.o: tests/wal_recovery_test.cpp.o
+.PHONY : tests/wal_recovery_test.o
+
+# target to build an object file
+tests/wal_recovery_test.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runTests.dir/build.make CMakeFiles/runTests.dir/tests/wal_recovery_test.cpp.o
+.PHONY : tests/wal_recovery_test.cpp.o
+
+tests/wal_recovery_test.i: tests/wal_recovery_test.cpp.i
+.PHONY : tests/wal_recovery_test.i
+
+# target to preprocess a source file
+tests/wal_recovery_test.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runTests.dir/build.make CMakeFiles/runTests.dir/tests/wal_recovery_test.cpp.i
+.PHONY : tests/wal_recovery_test.cpp.i
+
+tests/wal_recovery_test.s: tests/wal_recovery_test.cpp.s
+.PHONY : tests/wal_recovery_test.s
+
+# target to generate assembly for a file
+tests/wal_recovery_test.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/runTests.dir/build.make CMakeFiles/runTests.dir/tests/wal_recovery_test.cpp.s
+.PHONY : tests/wal_recovery_test.cpp.s
 
 # Help Target
 help:
@@ -352,14 +643,27 @@ help:
 	@echo "... clean"
 	@echo "... depend"
 	@echo "... edit_cache"
+	@echo "... install"
+	@echo "... install/local"
+	@echo "... install/strip"
+	@echo "... list_install_components"
 	@echo "... rebuild_cache"
+	@echo "... test"
+	@echo "... gmock"
+	@echo "... gmock_main"
+	@echo "... gtest"
+	@echo "... gtest_main"
 	@echo "... kvstore"
+	@echo "... runTests"
 	@echo "... src/decode_encodebase64.o"
 	@echo "... src/decode_encodebase64.i"
 	@echo "... src/decode_encodebase64.s"
 	@echo "... src/kvstore.o"
 	@echo "... src/kvstore.i"
 	@echo "... src/kvstore.s"
+	@echo "... src/logger.o"
+	@echo "... src/logger.i"
+	@echo "... src/logger.s"
 	@echo "... src/main.o"
 	@echo "... src/main.i"
 	@echo "... src/main.s"
@@ -381,6 +685,21 @@ help:
 	@echo "... src/wal.o"
 	@echo "... src/wal.i"
 	@echo "... src/wal.s"
+	@echo "... tests/concurrency_tests.o"
+	@echo "... tests/concurrency_tests.i"
+	@echo "... tests/concurrency_tests.s"
+	@echo "... tests/kvstore_tests.o"
+	@echo "... tests/kvstore_tests.i"
+	@echo "... tests/kvstore_tests.s"
+	@echo "... tests/raft_tests.o"
+	@echo "... tests/raft_tests.i"
+	@echo "... tests/raft_tests.s"
+	@echo "... tests/tcp_server_tests.o"
+	@echo "... tests/tcp_server_tests.i"
+	@echo "... tests/tcp_server_tests.s"
+	@echo "... tests/wal_recovery_test.o"
+	@echo "... tests/wal_recovery_test.i"
+	@echo "... tests/wal_recovery_test.s"
 .PHONY : help
 
 

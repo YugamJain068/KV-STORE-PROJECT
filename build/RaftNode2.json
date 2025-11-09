@@ -1,146 +1,87 @@
 {
-    "clientLastRequest": {
-        "client1": 105
-    },
-    "clientResultCache": {
-        "client1": "OK"
-    },
-    "currentTerm": 13,
+    "clientLastRequest": {},
+    "clientResultCache": {},
+    "currentTerm": 5,
     "logEntries": [
         {
-            "command": "PUT key88 val88",
-            "index": 300,
-            "term": 10
+            "command": "PUT car ferrari",
+            "index": 0,
+            "term": 1
         },
         {
-            "command": "PUT key89 val89",
-            "index": 301,
-            "term": 10
+            "command": "PUT car ferrari",
+            "index": 1,
+            "term": 1
         },
         {
-            "command": "PUT key90 val90",
-            "index": 302,
-            "term": 10
+            "command": "GET ferrari ",
+            "index": 2,
+            "term": 1
         },
         {
-            "command": "PUT key91 val91",
-            "index": 303,
-            "term": 10
+            "command": "GET car ",
+            "index": 3,
+            "term": 1
         },
         {
-            "command": "PUT key92 val92",
-            "index": 304,
-            "term": 10
+            "command": "PUT car deal",
+            "index": 4,
+            "term": 1
         },
         {
-            "command": "PUT key93 val93",
-            "index": 305,
-            "term": 10
+            "command": "GET key ",
+            "index": 5,
+            "term": 1
         },
         {
-            "command": "PUT key94 val94",
-            "index": 306,
-            "term": 10
+            "command": "GET car ",
+            "index": 6,
+            "term": 1
         },
         {
-            "command": "PUT key95 val95",
-            "index": 307,
-            "term": 10
+            "command": "DELETE car ",
+            "index": 7,
+            "term": 1
         },
         {
-            "command": "PUT key96 val96",
-            "index": 308,
-            "term": 10
+            "command": "GET car ",
+            "index": 8,
+            "term": 1
         },
         {
-            "command": "PUT key97 val97",
-            "index": 309,
-            "term": 10
-        },
-        {
-            "command": "PUT key98 val98",
-            "index": 310,
-            "term": 10
-        },
-        {
-            "command": "PUT key99 val99",
-            "index": 311,
-            "term": 10
+            "command": "GET car ",
+            "index": 9,
+            "term": 1
         },
         {
             "command": "PUT key100 val100",
-            "index": 312,
-            "term": 10
+            "index": 10,
+            "term": 3
         },
         {
-            "command": "PUT key101 val101",
-            "index": 313,
-            "term": 10
+            "command": "GET val1-- ",
+            "index": 11,
+            "term": 3
         },
         {
-            "command": "PUT key102 val102",
-            "index": 314,
-            "term": 10
-        },
-        {
-            "command": "PUT key103 val103",
-            "index": 315,
-            "term": 10
-        },
-        {
-            "command": "PUT key104 val104",
-            "index": 316,
-            "term": 10
-        },
-        {
-            "command": "PUT key105 val105",
-            "index": 317,
-            "term": 10
-        },
-        {
-            "command": "GET KEY0 ",
-            "index": 318,
-            "term": 12
-        },
-        {
-            "command": "GET key0 ",
-            "index": 319,
-            "term": 12
-        },
-        {
-            "command": "GET KEY ",
-            "index": 320,
-            "term": 12
-        },
-        {
-            "command": "GET KEY ",
-            "index": 321,
-            "term": 12
-        },
-        {
-            "command": "GET key105 ",
-            "index": 322,
-            "term": 12
-        },
-        {
-            "command": "GET key106 ",
-            "index": 323,
-            "term": 12
-        },
-        {
-            "command": "DELETE key10 ",
-            "index": 324,
-            "term": 12
+            "command": "GET key100 ",
+            "index": 12,
+            "term": 3
         },
         {
             "command": "GET key10 ",
-            "index": 325,
-            "term": 12
+            "index": 13,
+            "term": 5
+        },
+        {
+            "command": "PUT key10 vlue10",
+            "index": 14,
+            "term": 5
         },
         {
             "command": "GET key10 ",
-            "index": 326,
-            "term": 13
+            "index": 15,
+            "term": 5
         }
     ],
     "votedFor": 0

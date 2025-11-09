@@ -34,7 +34,9 @@ TEST(TcpServerTest, BasicCRUD)
         return std::string(buffer);
     };
 
-    EXPECT_NE(send_and_recv("PUT key1 value1").find("key1 added successfully.\n"), std::string::npos);
+    std::string resp = send_and_recv("PUT key1 value1");
+std::cout << "Server response: [" << resp << "]" << std::endl;
+EXPECT_NE(resp.find("key1 added successfully.\n"), std::string::npos);
     EXPECT_NE(send_and_recv("PUT key2 value2").find("key2 added successfully.\n"), std::string::npos);
     EXPECT_NE(send_and_recv("GET key1").find("value of key1 value1\n"), std::string::npos);
     EXPECT_NE(send_and_recv("DELETE key2").find("key2 deleted.\n"), std::string::npos);

@@ -1,7 +1,5 @@
 #include "raft_node.h"
 #include "persist_functions.h"
-#include <iostream>
-#include <thread>
 #include <nlohmann/json.hpp>
 #include "rpc_server.h"
 #include "kvstore.h"
@@ -11,6 +9,7 @@
 #include "kvstore_global.h"
 #include <fstream>
 #include "decode_encodebase64.h"
+#include "logger.h"
 
 using json = nlohmann::json;
 
@@ -45,7 +44,6 @@ void RaftNode::start()
     rpcServerThread = std::thread([self]()
                                   { startRaftRPCServer(self->rpcPort, self); });
 
-    // Load snapshot if it exists
     std::string snapPath = "./snapshots/node_" + std::to_string(id) + ".snap";
     if (std::filesystem::exists(snapPath))
     {
@@ -58,7 +56,6 @@ void RaftNode::start()
         snap->lastIncludedIndex = jSnap["metadata"]["lastIncludedIndex"];
         snap->lastIncludedTerm = jSnap["metadata"]["lastIncludedTerm"];
 
-        // Convert std::map to std::unordered_map
         auto tempMap = jSnap["state"].get<std::map<std::string, std::string>>();
         snap->kvState = std::unordered_map<std::string, std::string>(
             tempMap.begin(), tempMap.end());
@@ -70,34 +67,116 @@ void RaftNode::start()
         lastApplied = snap->lastIncludedIndex;
         commitIndex = snap->lastIncludedIndex;
 
-        std::cout << "[Node " << id << "] Restored snapshot: lastIncludedIndex="
-                  << snap->lastIncludedIndex << ", entries=" << snap->kvState.size() << "\n";
+        Logger::info(id, "Follower", currentTerm, "Restored snapshot: lastIncludedIndex=" + std::to_string(snap->lastIncludedIndex) + ", entries=" + std::to_string(snap->kvState.size()));
     }
 }
 RaftNode::~RaftNode()
 {
     if (shutdownRequested.exchange(true))
     {
-        std::cout << "[Node " << id << "] Already shutting down, skipping\n";
+        Logger::info(id, "Follower", currentTerm, "Already shutting down, skipping");
         return;
     }
     else
     {
         shutdownNode();
     }
-    std::cout << "[Node " << id << "] Destroyed\n";
+    Logger::info(id, "Follower", currentTerm, "Destroyed");
+}
+void RaftNode::updateLogMetrics()
+{
+    metrics.logSize = getLogSize();
+    metrics.commitIndex = commitIndex;
+    metrics.lastApplied = lastApplied;
+
+    if (latestSnapshot)
+    {
+        metrics.lastSnapshotIndex = latestSnapshot->lastIncludedIndex;
+        metrics.lastSnapshotTerm = latestSnapshot->lastIncludedTerm;
+    }
 }
 
+nlohmann::json RaftNode::getStatus()
+{
+    updateLogMetrics();
+
+    std::string roleStr = "Follower";
+    if (state == NodeState::LEADER)
+        roleStr = "Leader";
+    else if (state == NodeState::CANDIDATE)
+        roleStr = "Candidate";
+
+    return nlohmann::json{
+        {"node_id", id},
+        {"term", currentTerm},
+        {"role", roleStr},
+        {"leader_id", leaderId},
+        {"commit_index", commitIndex},
+        {"last_applied", lastApplied},
+        {"log_size", getLogSize()},
+        {"voted_for", votedFor},
+        {"snapshot_count", metrics.snapshotCount.load()},
+        {"last_snapshot_index", metrics.lastSnapshotIndex.load()}};
+}
+
+bool RaftNode::triggerSnapshot()
+{
+    try
+    {
+        if ((int)log.size() == 0)
+        {
+            return false;
+        }
+
+        std::lock_guard<std::mutex> lock(mtx);
+
+        auto newSnapshot = std::make_shared<Snapshot>();
+        newSnapshot->lastIncludedIndex = lastApplied;
+        newSnapshot->lastIncludedTerm = getLogTerm(lastApplied);
+
+        {
+            std::lock_guard<std::mutex> storeLock(store_mutex);
+            newSnapshot->kvState = store.dumpToMap();
+        }
+
+        saveSnapshot(*newSnapshot, id);
+        truncateLogSafe(newSnapshot->lastIncludedIndex);
+        latestSnapshot = newSnapshot;
+
+        store.writeAheadLog_truncate(newSnapshot->lastIncludedIndex);
+
+        for (size_t i = 0; i < nextIndex.size(); i++)
+        {
+            if (nextIndex[i] <= newSnapshot->lastIncludedIndex)
+            {
+                nextIndex[i] = newSnapshot->lastIncludedIndex + 1;
+            }
+        }
+
+        persistMetadata(shared_from_this());
+        metrics.recordSnapshot(newSnapshot->lastIncludedIndex, newSnapshot->lastIncludedTerm);
+        Logger::info(id, getRoleString(), currentTerm, "Manual snapshot created successfully");
+
+        return true;
+    }
+    catch (const std::exception &e)
+    {
+        Logger::error(id, getRoleString(), currentTerm, "Snapshot creation failed: " + std::string(e.what()));
+        return false;
+    }
+    catch (...)
+    {
+        Logger::error(id, getRoleString(), currentTerm, "Snapshot creation failed: Unknown error");
+        return false;
+    }
+}
 int RaftNode::getLogTerm(int index) const
 
 {
 
     // Check if index is in snapshot range
-
     if (latestSnapshot && index <= latestSnapshot->lastIncludedIndex)
-
     {
-
         if (index == latestSnapshot->lastIncludedIndex)
 
         {
@@ -105,58 +184,42 @@ int RaftNode::getLogTerm(int index) const
             return latestSnapshot->lastIncludedTerm;
         }
 
-        // Index is before snapshot - this shouldn't happen in normal operation
-
         return 0;
     }
-
-    // Calculate position in actual log array
 
     int logIndex = index;
 
     if (latestSnapshot)
-
     {
-
         logIndex = index - latestSnapshot->lastIncludedIndex - 1;
     }
 
-    // Check bounds
-
     if (logIndex < 0 || logIndex >= (int)log.size())
-
     {
-
-        return 0; // Invalid index
+        return 0;
     }
 
     return log[logIndex].term;
 }
 
-// Also update getLogSize() to account for snapshot:
 
 int RaftNode::getLogSize() const
 
 {
-
     int baseIndex = 0;
 
     if (latestSnapshot)
-
     {
-
         baseIndex = latestSnapshot->lastIncludedIndex + 1;
     }
 
     return baseIndex + log.size();
 }
 
-// And update getLogEntries to handle snapshot offset:
 
 std::vector<logEntry> RaftNode::getLogEntries(int startIndex, int endIndex) const
 
 {
-
     std::vector<logEntry> entries;
 
     int baseIndex = 0;
@@ -164,82 +227,56 @@ std::vector<logEntry> RaftNode::getLogEntries(int startIndex, int endIndex) cons
     if (latestSnapshot)
 
     {
-
         baseIndex = latestSnapshot->lastIncludedIndex + 1;
     }
 
     // Convert global indices to log array indices
 
     int logStart = startIndex - baseIndex;
-
     int logEnd = endIndex - baseIndex;
 
-    // Clamp to valid range
-
     logStart = std::max(0, logStart);
-
     logEnd = std::min((int)log.size(), logEnd);
 
     if (logStart >= logEnd || logStart >= (int)log.size())
-
     {
-
-        return entries; // Empty
+        return entries; 
     }
 
-    entries.insert(entries.end(),
-
-                   log.begin() + logStart,
-
-                   log.begin() + logEnd);
+    entries.insert(entries.end(),log.begin() + logStart,log.begin() + logEnd);
 
     return entries;
 }
 
-// Update appendLogEntry to use global indexing:
-
 void RaftNode::appendLogEntry(const logEntry &entry)
-
 {
-
     std::lock_guard<std::mutex> lock(mtx);
 
     log.push_back(entry);
 }
 
-// Update truncateLogSafe to properly handle snapshot:
 
 void RaftNode::truncateLogSafe(int lastIncludedIndex)
 {
 
-    // Get the OLD snapshot index (before updating)
     int oldSnapshotIndex = latestSnapshot ? latestSnapshot->lastIncludedIndex : -1;
 
-    // Only skip if we're moving backward relative to OLD snapshot
     if (lastIncludedIndex <= oldSnapshotIndex)
     {
-        std::cout << "[Node " << id << "] Skipping truncation at " << lastIncludedIndex
-                  << " (current snapshot at " << oldSnapshotIndex << ")\n";
+        Logger::info(id, getRoleString(), currentTerm, "Skipping truncation at " + std::to_string(lastIncludedIndex) + " (current snapshot at " + std::to_string(oldSnapshotIndex) + ")");
         return;
     }
 
-    // Calculate how many entries to remove from the beginning
     int baseIndex = oldSnapshotIndex + 1;
     int truncateAtLogIndex = lastIncludedIndex - baseIndex + 1;
 
-    std::cout << "[Node " << id << "] Truncating: lastIncludedIndex=" << lastIncludedIndex
-              << ", oldSnapshotIndex=" << oldSnapshotIndex
-              << ", baseIndex=" << baseIndex
-              << ", truncateAtLogIndex=" << truncateAtLogIndex
-              << ", log.size()=" << log.size() << "\n";
+    Logger::info(id, getRoleString(), currentTerm, "Truncating: lastIncludedIndex=" + std::to_string(lastIncludedIndex) + ", oldSnapshotIndex=" + std::to_string(oldSnapshotIndex) + ", baseIndex=" + std::to_string(baseIndex) + ", truncateAtLogIndex=" + std::to_string(truncateAtLogIndex) + ", log.size()=" + std::to_string(log.size()));
 
     if (truncateAtLogIndex > 0 && truncateAtLogIndex <= (int)log.size())
     {
         log.erase(log.begin(), log.begin() + truncateAtLogIndex);
 
-        std::cout << "[Node " << id << "] Truncated log up to index "
-                  << lastIncludedIndex << ", " << log.size()
-                  << " entries remaining\n";
+        Logger::info(id, getRoleString(), currentTerm, "Truncated log up to index " + std::to_string(lastIncludedIndex) + ", " + std::to_string(log.size()) + " entries remaining");
     }
 }
 
@@ -254,8 +291,7 @@ void RaftNode::shutdownNode()
         stopRPC = true;
     }
 
-    std::cout << "[Node " << id << "] Starting shutdown...\n";
-
+    Logger::info(id, getRoleString(), currentTerm, "Starting shutdown...");
     cv.notify_all();
 
     if (serverSocket != -1)
@@ -270,24 +306,24 @@ void RaftNode::shutdownNode()
 
         if (heartbeatThread.joinable())
         {
-            std::cout << "[Node " << id << "] Joining heartbeat thread...\n";
+            Logger::info(id, getRoleString(), currentTerm, "Joining heartbeat thread...");
             heartbeatThread.join();
-            std::cout << "[Node " << id << "] Heartbeat thread joined\n";
+            Logger::info(id, getRoleString(), currentTerm, "Heartbeat thread joined");
         }
 
         if (rpcServerThread.joinable())
         {
-            std::cout << "[Node " << id << "] Joining RPC server thread...\n";
+            Logger::info(id, getRoleString(), currentTerm, "Joining RPC server thread...");
             rpcServerThread.join();
-            std::cout << "[Node " << id << "] RPC server thread joined\n";
+            Logger::info(id, getRoleString(), currentTerm, "RPC server thread joined");
         }
     }
     catch (const std::exception &e)
     {
-        std::cerr << "[Node " << id << "] Exception during thread join: " << e.what() << "\n";
+        Logger::error(id, getRoleString(), currentTerm, "Exception during thread join: " + std::string(e.what()));
     }
 
-    std::cout << "[Node " << id << "] Shutdown complete\n";
+    Logger::info(id, getRoleString(), currentTerm, "Shutdown complete");
 }
 void RaftNode::becomeFollower(int newTerm)
 {
@@ -301,6 +337,9 @@ void RaftNode::becomeFollower(int newTerm)
 
         currentTerm = newTerm;
         state = NodeState::FOLLOWER;
+        metrics.currentTerm = currentTerm;
+        metrics.votedFor = votedFor;
+        metrics.updateRole("Follower", id);
         votedFor = -1;
 
         runningHeartbeats = false;
@@ -310,7 +349,7 @@ void RaftNode::becomeFollower(int newTerm)
 
     persistMetadata(shared_from_this());
 
-    std::cout << "[Node " << id << "] Became FOLLOWER (term " << currentTerm << ")\n";
+    Logger::info(id, "Follower", newTerm, "Became FOLLOWER (term " + std::to_string(currentTerm) + ")");
 }
 
 void reset_timeout(std::shared_ptr<RaftNode> node)
@@ -326,8 +365,8 @@ void reset_timeout(std::shared_ptr<RaftNode> node)
     node->electionTimeout = std::chrono::milliseconds(2000 + rand() % 2000);
     node->cv.notify_all();
 
-    std::cout << "[Node " << node->id << "] Timeout reset, new timeout: "
-              << node->electionTimeout.count() << "ms\n";
+    Logger::info(node->id, node->getRoleString(), node->currentTerm,
+                 "Timeout reset, new timeout: " + std::to_string(node->electionTimeout.count()) + "ms");
 }
 
 void send_heartbeats(std::shared_ptr<RaftNode> leader, std::vector<std::shared_ptr<RaftNode>> &nodes)
@@ -349,21 +388,20 @@ void send_heartbeats(std::shared_ptr<RaftNode> leader, std::vector<std::shared_p
                 {
                     auto snapshot = leader->latestSnapshot;
                     int nextIdx = leader->nextIndex[peerIdx];
-
-                    // FIX: Check if follower needs snapshot BEFORE trying AppendEntries
+                    
                     if (snapshot && nextIdx <= snapshot->lastIncludedIndex)
                     {
-                        std::cout << "[Leader " << leader->id << "] Peer " << peerIdx
-                                  << " needs snapshot (nextIdx=" << nextIdx
-                                  << ", snapshot=" << snapshot->lastIncludedIndex << ")\n";
+                        Logger::info(leader->id, "Leader", leader->currentTerm,
+                                     "Peer " + std::to_string(peerIdx) + " needs snapshot (nextIdx=" + std::to_string(nextIdx) +
+                                         ", snapshot=" + std::to_string(snapshot->lastIncludedIndex) + ")");
 
                         std::vector<char> snapBytes = serializeSnapshot(*snapshot);
                         int chunkSize = 512;
 
-                        std::cout << "[Leader " << leader->id << "] Starting snapshot transfer to node " << peerIdx
-                                  << ", total size: " << snapBytes.size()
-                                  << " bytes, chunk size: " << chunkSize << "\n";
-
+                        Logger::info(leader->id, "Leader", leader->currentTerm,
+                                     "Starting snapshot transfer to node " + std::to_string(peerIdx) +
+                                         ", total size: " + std::to_string(snapBytes.size()) +
+                                         " bytes, chunk size: " + std::to_string(chunkSize));
                         bool snapshotSuccess = true;
                         int chunkCount = (snapBytes.size() + chunkSize - 1) / chunkSize;
 
@@ -391,23 +429,26 @@ void send_heartbeats(std::shared_ptr<RaftNode> leader, std::vector<std::shared_p
 
                             if (jsonStr.length() > 2040)
                             {
-                                std::cerr << "[Leader " << leader->id << "] JSON too large: " << jsonStr.length()
-                                          << " bytes, reducing chunk size\n";
+                                Logger::error(leader->id, "Leader", leader->currentTerm,
+                                              "JSON too large: " + std::to_string(jsonStr.length()) + " bytes, reducing chunk size");
                                 chunkSize = chunkSize / 2;
                                 chunkCount = (snapBytes.size() + chunkSize - 1) / chunkSize;
                                 chunkNum = -1;
                                 continue;
                             }
 
-                            std::cout << "[Leader " << leader->id << "] Sending chunk " << (chunkNum + 1)
-                                      << "/" << chunkCount << " (offset=" << offset
-                                      << ", size=" << chunk.size() << ", JSON size=" << jsonStr.length() << ")\n";
+                            Logger::info(leader->id, "Leader", leader->currentTerm,
+                                         "Sending chunk " + std::to_string(chunkNum + 1) + "/" + std::to_string(chunkCount) +
+                                             " (offset=" + std::to_string(offset) + ", size=" + std::to_string(chunk.size()) +
+                                             ", JSON size=" + std::to_string(jsonStr.length()) + ")");
 
                             std::string snapRespStr = sendRPC("127.0.0.1", peerPort, jsonStr);
+                            leader->metrics.installSnapshotsSent++;
 
                             if (snapRespStr.empty())
                             {
-                                std::cerr << "[Leader " << leader->id << "] Empty response for snapshot chunk " << (chunkNum + 1) << "\n";
+                                Logger::error(leader->id, "Leader", leader->currentTerm,
+                                              "Empty response for snapshot chunk " + std::to_string(chunkNum + 1));
                                 snapshotSuccess = false;
                                 break;
                             }
@@ -420,8 +461,8 @@ void send_heartbeats(std::shared_ptr<RaftNode> leader, std::vector<std::shared_p
                                 if (!accepted)
                                 {
                                     std::string error = snapRespJson.value("error", "unknown");
-                                    std::cerr << "[Leader " << leader->id << "] Snapshot chunk " << (chunkNum + 1)
-                                              << " rejected: " << error << "\n";
+                                    Logger::error(leader->id, "Leader", leader->currentTerm,
+                                                  "Snapshot chunk " + std::to_string(chunkNum + 1) + " rejected: " + error);
                                     snapshotSuccess = false;
                                     break;
                                 }
@@ -430,23 +471,23 @@ void send_heartbeats(std::shared_ptr<RaftNode> leader, std::vector<std::shared_p
                                 {
                                     leader->nextIndex[peerIdx] = snapshot->lastIncludedIndex + 1;
                                     leader->matchIndex[peerIdx] = snapshot->lastIncludedIndex;
-                                    std::cout << "[Leader " << leader->id << "] Successfully sent complete snapshot to follower "
-                                              << peerIdx << " at index " << snapshot->lastIncludedIndex << "\n";
+                                    Logger::info(leader->id, "Leader", leader->currentTerm,
+                                                 "Successfully sent complete snapshot to follower " + std::to_string(peerIdx) +
+                                                     " at index " + std::to_string(snapshot->lastIncludedIndex));
                                 }
                             }
                             catch (const nlohmann::json::parse_error &e)
                             {
-                                std::cerr << "[Leader " << leader->id << "] JSON parse error in snapshot response: " << e.what() << "\n";
+                                Logger::error(leader->id, "Leader", leader->currentTerm,
+                                              "JSON parse error in snapshot response: " + std::string(e.what()));
                                 snapshotSuccess = false;
                                 break;
                             }
                         }
 
-                        // Skip AppendEntries for this peer in this iteration
                         continue;
                     }
 
-                    // Normal AppendEntries flow
                     int prevIndex = nextIdx - 1;
                     int prevTerm = leader->getLogTerm(prevIndex);
 
@@ -473,6 +514,7 @@ void send_heartbeats(std::shared_ptr<RaftNode> leader, std::vector<std::shared_p
                         leader->commitIndex};
 
                     std::string responseStr = sendRPC("127.0.0.1", peerPort, nlohmann::json(heartbeat).dump());
+                    leader->metrics.appendEntriesSent++;
 
                     if (!leader->runningHeartbeats || leader->shutdownRequested.load())
                         break;
@@ -493,6 +535,9 @@ void send_heartbeats(std::shared_ptr<RaftNode> leader, std::vector<std::shared_p
                             }
                             leader->currentTerm = resp.term;
                             leader->state = NodeState::FOLLOWER;
+                            leader->metrics.currentTerm = leader->currentTerm;
+                            leader->metrics.votedFor = leader->votedFor;
+                            leader->metrics.updateRole("Follower", leader->id);
                             leader->votedFor = -1;
                             leader->runningHeartbeats = false;
 
@@ -510,14 +555,14 @@ void send_heartbeats(std::shared_ptr<RaftNode> leader, std::vector<std::shared_p
                     }
                     else if (!resp.success)
                     {
-                        // Decrement nextIndex and try again next iteration
                         if (leader->nextIndex[peerIdx] > 0)
                             leader->nextIndex[peerIdx]--;
                     }
                 }
                 catch (const std::exception &e)
                 {
-                    std::cerr << "[Heartbeat] Exception: " << e.what() << "\n";
+                    Logger::error(leader->id, leader->getRoleString(), leader->currentTerm,
+                                  "Heartbeat Exception: " + std::string(e.what()));
                     if (leader->shutdownRequested.load())
                         break;
                 }
@@ -533,10 +578,10 @@ void send_heartbeats(std::shared_ptr<RaftNode> leader, std::vector<std::shared_p
     }
     catch (const std::exception &e)
     {
-        std::cerr << "[Heartbeat thread] Exception: " << e.what() << "\n";
+        Logger::error(leader->id, leader->getRoleString(), leader->currentTerm, "Heartbeat Exception: " + std::string(e.what()));
     }
 
-    std::cout << "[Heartbeat thread] Exiting for Node " << leader->id << "\n";
+    Logger::info(leader->id, leader->getRoleString(), leader->currentTerm, "Heartbeat thread Exiting for Node " + std::to_string(leader->id));
 }
 void start_election(std::shared_ptr<RaftNode> candidate, std::vector<std::shared_ptr<RaftNode>> &nodes)
 {
@@ -544,11 +589,15 @@ void start_election(std::shared_ptr<RaftNode> candidate, std::vector<std::shared
         std::lock_guard<std::mutex> lock(candidate->mtx);
         if (candidate->shutdownRequested.load())
         {
-            std::cout << "[Candidate " << candidate->id << "] Skipping election - shutdown requested\n";
+            Logger::info(candidate->id, "Candidate", candidate->currentTerm, "Skipping election - shutdown requested");
             return;
         }
 
         candidate->state = NodeState::CANDIDATE;
+        candidate->metrics.currentTerm = candidate->currentTerm;
+        candidate->metrics.votedFor = candidate->votedFor;
+        candidate->metrics.electionCount++;
+        candidate->metrics.updateRole("Candidate", candidate->id);
         candidate->currentTerm++;
         candidate->votedFor = candidate->id;
     }
@@ -561,28 +610,30 @@ void start_election(std::shared_ptr<RaftNode> candidate, std::vector<std::shared
 
         if (candidate->shutdownRequested.load())
         {
-            std::cout << "[Candidate " << candidate->id << "] Aborting election - shutdown requested\n";
+            Logger::info(candidate->id, "Candidate", candidate->currentTerm, "Aborting election - shutdown requested");
             return;
         }
 
         RequestVoteRPC req{
             candidate->currentTerm,
             candidate->id,
-            candidate->getLogSize() - 1,                       // ✅ Use getLogSize() not log.size()
-            candidate->getLogTerm(candidate->getLogSize() - 1) // ✅ Get term correctly
+            candidate->getLogSize() - 1,                      
+            candidate->getLogTerm(candidate->getLogSize() - 1)
         };
 
         std::string responseStr = sendRPC("127.0.0.1", peerPort, nlohmann::json(req).dump());
+        candidate->metrics.requestVotesSent++;
 
         if (candidate->shutdownRequested.load())
         {
-            std::cout << "[Candidate " << candidate->id << "] Aborting election after RPC - shutdown requested\n";
+            Logger::info(candidate->id, "Candidate", candidate->currentTerm, "Aborting election after RPC - shutdown requested");
             return;
         }
 
         if (responseStr.empty())
         {
-            std::cerr << "[Candidate " << candidate->id << "] Empty vote response from peer " << peerPort << "\n";
+            Logger::error(candidate->id, "Candidate", candidate->currentTerm,
+                          "Empty vote response from peer " + std::to_string(peerPort));
             continue;
         }
         try
@@ -600,29 +651,32 @@ void start_election(std::shared_ptr<RaftNode> candidate, std::vector<std::shared
 
                 candidate->currentTerm = resp.term;
                 candidate->state = NodeState::FOLLOWER;
+                candidate->metrics.currentTerm = candidate->currentTerm;
+                candidate->metrics.votedFor = candidate->votedFor;
+                candidate->metrics.updateRole("Follower", candidate->id);
                 candidate->votedFor = -1;
                 persistMetadata(candidate);
-                std::cout << "[Candidate " << candidate->id
-                          << "] Step down to FOLLOWER (term " << resp.term << ")\n";
+                Logger::info(candidate->id, "Candidate", candidate->currentTerm,
+                             "Step down to FOLLOWER (term " + std::to_string(resp.term) + ")");
                 return;
             }
             if (resp.voteGranted)
             {
                 votes++;
-                std::cout << "[Candidate " << candidate->id << "] Vote granted from peer "
-                          << peerPort << "\n";
+                Logger::info(candidate->id, "Candidate", candidate->currentTerm,
+                             "Vote granted from peer " + std::to_string(peerPort));
             }
         }
         catch (std::exception &e)
         {
-            std::cerr << "[Candidate " << candidate->id
-                      << "] Failed to parse vote response: " << e.what() << "\n";
+            Logger::error(candidate->id, "Candidate", candidate->currentTerm,
+                          "Failed to parse vote response: " + std::string(e.what()));
         }
     }
 
     if (candidate->shutdownRequested.load())
     {
-        std::cout << "[Candidate " << candidate->id << "] Not becoming leader - shutdown requested\n";
+        Logger::info(candidate->id, "Candidate", candidate->currentTerm, "Not becoming leader - shutdown requested");
         return;
     }
 
@@ -633,11 +687,14 @@ void start_election(std::shared_ptr<RaftNode> candidate, std::vector<std::shared
 
             if (candidate->shutdownRequested.load())
             {
-                std::cout << "[Candidate " << candidate->id << "] Not becoming leader - shutdown requested\n";
+                Logger::info(candidate->id, "Candidate", candidate->currentTerm, "Not becoming leader - shutdown requested");
+                return;
                 return;
             }
 
             candidate->state = NodeState::LEADER;
+            candidate->metrics.leaderId = candidate->id;
+            candidate->metrics.updateRole("Leader", candidate->id);
             candidate->runningHeartbeats = true;
             candidate->leaderId = candidate->id;
 
@@ -648,27 +705,27 @@ void start_election(std::shared_ptr<RaftNode> candidate, std::vector<std::shared
             }
         }
 
-        std::cout << "Leader elected: Node " << candidate->id
-                  << " Term: " << candidate->currentTerm << "\n";
+        Logger::info(candidate->id, "Leader", candidate->currentTerm,
+                     "Leader elected: Node " + std::to_string(candidate->id) + " Term: " + std::to_string(candidate->currentTerm));
         reset_timeout(candidate);
 
         if (candidate->heartbeatThread.joinable())
         {
             candidate->runningHeartbeats = false;
-            std::cout << "[Node " << candidate->id << "] Joining existing heartbeat thread...\n";
+            Logger::info(candidate->id, "Leader", candidate->currentTerm, "Joining existing heartbeat thread...");
             candidate->heartbeatThread.join();
-            std::cout << "[Node " << candidate->id << "] Existing heartbeat thread joined\n";
+            Logger::info(candidate->id, "Leader", candidate->currentTerm, "Existing heartbeat thread joined");
             candidate->runningHeartbeats = true;
         }
 
         if (!candidate->shutdownRequested.load())
         {
-            std::cout << "[Node " << candidate->id << "] Starting new heartbeat thread...\n";
+            Logger::info(candidate->id, "Leader", candidate->currentTerm, "Starting new heartbeat thread...");
             candidate->heartbeatThread = std::thread(send_heartbeats, candidate, std::ref(nodes));
         }
         else
         {
-            std::cout << "[Node " << candidate->id << "] Not starting heartbeat thread - shutdown requested\n";
+            Logger::info(candidate->id, "Leader", candidate->currentTerm, "Not starting heartbeat thread - shutdown requested");
         }
 
         persistMetadata(candidate);
@@ -680,21 +737,21 @@ std::string RaftNode::applyToStateMachine(const std::string &command)
     if (shutdownRequested.load())
         return "error: node shutting down";
 
-    std::cout << "[Node " << id << "] Applying command: " << command << "\n";
+    Logger::info(id, getRoleString(), currentTerm, "Applying command: " + command);
 
     std::istringstream iss(command);
     std::string cmd, key, value;
     iss >> cmd >> key;
     std::getline(iss, value);
     if (!value.empty() && value[0] == ' ')
-        value.erase(0, 1); // remove leading space
+        value.erase(0, 1);
 
     std::string result;
 
     if (cmd == "PUT")
     {
         {
-            std::lock_guard<std::mutex> lock(store_mutex); // thread-safe
+            std::lock_guard<std::mutex> lock(store_mutex);
             store.put(key, value);
         }
         result = "OK";
@@ -716,7 +773,7 @@ std::string RaftNode::applyToStateMachine(const std::string &command)
         bool deleted;
         {
             std::lock_guard<std::mutex> lock(store_mutex);
-            deleted = store.remove(key); // your delete returns bool
+            deleted = store.remove(key);
         }
         result = deleted ? "OK" : "key not found";
     }
@@ -764,7 +821,7 @@ std::string RaftNode::handleClientCommand(const std::string &clientId, int reque
         std::lock_guard<std::mutex> lock(clientMutex);
         if (clientLastRequest.count(clientId) && clientLastRequest[clientId] == requestId)
         {
-            return clientResultCache[clientId]; // return cached result
+            return clientResultCache[clientId];
         }
     }
 
@@ -799,6 +856,7 @@ std::string RaftNode::handleClientCommand(const std::string &clientId, int reque
 
         AppendEntriesRPC msg{currentTerm, id, prevIndex, prevTerm, entries, commitIndex};
         std::string responseStr = sendRPC("127.0.0.1", port, nlohmann::json(msg).dump());
+        metrics.appendEntriesSent++;
 
         if (responseStr.empty())
             continue;
@@ -813,6 +871,9 @@ std::string RaftNode::handleClientCommand(const std::string &clientId, int reque
                 std::lock_guard<std::mutex> lock(mtx);
                 currentTerm = resp.term;
                 state = NodeState::FOLLOWER;
+                metrics.currentTerm = currentTerm;
+                metrics.votedFor = votedFor;
+                metrics.updateRole("Follower", id);
                 votedFor = -1;
                 persistMetadata(shared_from_this());
                 return "leader step down";
@@ -835,11 +896,12 @@ std::string RaftNode::handleClientCommand(const std::string &clientId, int reque
                 {
                     std::vector<char> snapBytes = serializeSnapshot(*snapshot);
 
-                    int chunkSize = 512; // Conservative chunk size
+                    int chunkSize = 512;
 
-                    std::cout << "[Leader " << id << "] Starting snapshot transfer to node " << i
-                              << ", total size: " << snapBytes.size()
-                              << " bytes, chunk size: " << chunkSize << "\n";
+                    Logger::info(id, "Leader", currentTerm,
+                                 "Starting snapshot transfer to node " + std::to_string(i) +
+                                     ", total size: " + std::to_string(snapBytes.size()) +
+                                     " bytes, chunk size: " + std::to_string(chunkSize));
 
                     bool snapshotSuccess = true;
                     int chunkCount = (snapBytes.size() + chunkSize - 1) / chunkSize;
@@ -852,7 +914,6 @@ std::string RaftNode::handleClientCommand(const std::string &clientId, int reque
 
                         std::string chunkBase64 = base64Encode(chunk);
 
-                        // Validate the final JSON size before sending
                         nlohmann::json j;
                         j["rpc"] = "InstallSnapshot";
                         j["term"] = currentTerm;
@@ -867,26 +928,29 @@ std::string RaftNode::handleClientCommand(const std::string &clientId, int reque
 
                         std::string jsonStr = j.dump();
 
-                        // Safety check: ensure JSON fits in buffer
-                        if (jsonStr.length() > 2040) // Leave small safety margin
+                        if (jsonStr.length() > 2040) 
                         {
-                            std::cerr << "[Leader " << id << "] JSON too large: " << jsonStr.length()
-                                      << " bytes, reducing chunk size\n";
+                            Logger::error(id, "Leader", currentTerm,
+                                          "JSON too large: " + std::to_string(jsonStr.length()) + " bytes, reducing chunk size");
+
                             chunkSize = chunkSize / 2;
                             chunkCount = (snapBytes.size() + chunkSize - 1) / chunkSize;
-                            chunkNum = -1; // Restart loop
+                            chunkNum = -1;
                             continue;
                         }
 
-                        std::cout << "[Leader " << id << "] Sending chunk " << (chunkNum + 1)
-                                  << "/" << chunkCount << " (offset=" << offset
-                                  << ", size=" << chunk.size() << ", JSON size=" << jsonStr.length() << ")\n";
+                        Logger::info(id, "Leader", currentTerm,
+                                     "Sending chunk " + std::to_string(chunkNum + 1) + "/" + std::to_string(chunkCount) +
+                                         " (offset=" + std::to_string(offset) + ", size=" + std::to_string(chunk.size()) +
+                                         ", JSON size=" + std::to_string(jsonStr.length()) + ")");
 
                         std::string snapRespStr = sendRPC("127.0.0.1", port, jsonStr);
+                        metrics.installSnapshotsSent++;
 
                         if (snapRespStr.empty())
                         {
-                            std::cerr << "[Leader " << id << "] Empty response for snapshot chunk " << (chunkNum + 1) << "\n";
+                            Logger::error(id, "Leader", currentTerm,
+                                          "Empty response for snapshot chunk " + std::to_string(chunkNum + 1));
                             snapshotSuccess = false;
                             break;
                         }
@@ -899,8 +963,8 @@ std::string RaftNode::handleClientCommand(const std::string &clientId, int reque
                             if (!accepted)
                             {
                                 std::string error = snapRespJson.value("error", "unknown");
-                                std::cerr << "[Leader " << id << "] Snapshot chunk " << (chunkNum + 1)
-                                          << " rejected: " << error << "\n";
+                                Logger::error(id, "Leader", currentTerm,
+                                              "Snapshot chunk " + std::to_string(chunkNum + 1) + " rejected: " + error);
                                 snapshotSuccess = false;
                                 break;
                             }
@@ -909,13 +973,15 @@ std::string RaftNode::handleClientCommand(const std::string &clientId, int reque
                             {
                                 nextIndex[i] = snapshot->lastIncludedIndex + 1;
                                 matchIndex[i] = snapshot->lastIncludedIndex;
-                                std::cout << "[Leader " << id << "] Successfully sent complete snapshot to follower "
-                                          << i << " at index " << snapshot->lastIncludedIndex << "\n";
+                                Logger::info(id, "Leader", currentTerm,
+                                             "Successfully sent complete snapshot to follower " + std::to_string(i) +
+                                                 " at index " + std::to_string(snapshot->lastIncludedIndex));
                             }
                         }
                         catch (const nlohmann::json::parse_error &e)
                         {
-                            std::cerr << "[Leader " << id << "] JSON parse error in snapshot response: " << e.what() << "\n";
+                            Logger::error(id, "Leader", currentTerm,
+                                          "JSON parse error in snapshot response: " + std::string(e.what()));
                             snapshotSuccess = false;
                             break;
                         }
@@ -941,7 +1007,6 @@ std::string RaftNode::handleClientCommand(const std::string &clientId, int reque
         {
             lastApplied++;
 
-            // Calculate actual log index
             int logIdx = lastApplied;
             if (latestSnapshot)
             {
@@ -955,21 +1020,22 @@ std::string RaftNode::handleClientCommand(const std::string &clientId, int reque
         }
         int totalLogSize = getLogSize();
 
-        std::cout << "[Node " << id << "] After applying: totalLogSize=" << totalLogSize
-                  << ", log.size()=" << log.size()
-                  << ", lastApplied=" << lastApplied << "\n";
+        Logger::info(id, "Leader", currentTerm,
+                     "After applying: totalLogSize=" + std::to_string(totalLogSize) +
+                         ", log.size()=" + std::to_string(log.size()) +
+                         ", lastApplied=" + std::to_string(lastApplied));
 
-        // FIX: Check getLogSize() not log.size()
         if ((int)log.size() >= SNAPSHOT_THRESHOLD)
         {
-            std::cout << "[Node " << id << "] STARTING snapshot creation at totalLogSize="
-                      << totalLogSize << ", lastApplied=" << lastApplied << "\n";
+            Logger::info(id, "Leader", currentTerm,
+                         "STARTING snapshot creation at totalLogSize=" + std::to_string(totalLogSize) +
+                             ", lastApplied=" + std::to_string(lastApplied));
 
             auto newSnapshot = std::make_shared<Snapshot>();
             newSnapshot->lastIncludedIndex = lastApplied;
             newSnapshot->lastIncludedTerm = getLogTerm(lastApplied);
 
-            std::cout << "[Node " << id << "] About to dump KV store...\n";
+            Logger::info(id, "Leader", currentTerm, "About to dump KV store...");
             {
                 std::lock_guard<std::mutex> storeLock(store_mutex);
                 newSnapshot->kvState = store.dumpToMap();
@@ -993,14 +1059,14 @@ std::string RaftNode::handleClientCommand(const std::string &clientId, int reque
 
             persistMetadata(shared_from_this());
 
-            std::cout << "[Node " << id << "] Created snapshot at index "
-                      << newSnapshot->lastIncludedIndex
-                      << " (term " << newSnapshot->lastIncludedTerm << ")\n";
+            Logger::info(id, "Leader", currentTerm,
+                         "Created snapshot at index " + std::to_string(newSnapshot->lastIncludedIndex) +
+                             " (term " + std::to_string(newSnapshot->lastIncludedTerm) + ")");
         }
         else
         {
-            std::cout << "[Node " << id << "] Snapshot not triggered: "
-                      << totalLogSize << " < " << SNAPSHOT_THRESHOLD << "\n";
+            Logger::info(id, "Leader", currentTerm,
+                         "Snapshot not triggered: " + std::to_string(totalLogSize) + " < " + std::to_string(SNAPSHOT_THRESHOLD));
         }
 
         {
@@ -1051,9 +1117,9 @@ void election_timer(std::shared_ptr<RaftNode> node,
                     break;
                 }
 
-                std::cout << "Node " << node->id << " election timeout ("
-                          << timeSinceHeartbeat.count() << "ms >= "
-                          << node->electionTimeout.count() << "ms) → starting election\n";
+                Logger::info(node->id, node->getRoleString(), node->currentTerm,
+                             "Election timeout (" + std::to_string(timeSinceHeartbeat.count()) + "ms >= " +
+                                 std::to_string(node->electionTimeout.count()) + "ms) → starting election");
                 start_election(node, nodes);
             }
             else
@@ -1074,10 +1140,10 @@ void election_timer(std::shared_ptr<RaftNode> node,
     }
     catch (const std::exception &e)
     {
-        std::cerr << "[Election timer] Exception: " << e.what() << "\n";
+        Logger::error(node->id, node->getRoleString(), node->currentTerm, "Election timer Exception: " + std::string(e.what()));
     }
 
-    std::cout << "Election timer for Node " << node->id << " stopped\n";
+    Logger::info("Election timer for Node " + std::to_string(node->id) + " stopped");
 }
 
 void raftAlgorithm()
@@ -1115,7 +1181,6 @@ void raftAlgorithm()
 
     std::shared_ptr<RaftNode> leader = nullptr;
 
-    // Wait up to some timeout
     auto start = std::chrono::steady_clock::now();
     while (!leader)
     {
@@ -1129,37 +1194,32 @@ void raftAlgorithm()
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
-        // Optional timeout to avoid infinite loop
         auto now = std::chrono::steady_clock::now();
         if (std::chrono::duration_cast<std::chrono::seconds>(now - start).count() > 10)
         {
-            std::cout << "No leader elected in 10 seconds!\n";
+            Logger::info("No leader elected in 10 seconds!");
             return;
         }
     }
 
-    std::cout << "Leader elected: Node " << leader->id << "\n";
+    Logger::info("Leader elected: Node " + std::to_string(leader->id));
     std::this_thread::sleep_for(std::chrono::seconds(3));
-
-    
 
     while (!raftShutdownRequested.load())
     {
         std::this_thread::sleep_for(std::chrono::milliseconds(200));
     }
-    // Print final state
-    std::cout << "\n=== FINAL STATE ===\n";
+    Logger::info("=== FINAL STATE ===");
     for (auto &node : nodes)
     {
-        std::cout << "Node " << node->id
-                  << ": lastApplied=" << node->lastApplied
-                  << ", commitIndex=" << node->commitIndex
-                  << ", log.size()=" << node->log.size()
-                  << ", snapshot=" << (node->latestSnapshot ? std::to_string(node->latestSnapshot->lastIncludedIndex) : "none")
-                  << "\n";
+        Logger::info(node->id, node->getRoleString(), node->currentTerm,
+                     "lastApplied=" + std::to_string(node->lastApplied) +
+                         ", commitIndex=" + std::to_string(node->commitIndex) +
+                         ", log.size()=" + std::to_string(node->log.size()) +
+                         ", snapshot=" + (node->latestSnapshot ? std::to_string(node->latestSnapshot->lastIncludedIndex) : "none"));
     }
 
-    std::cout << "Shutting down Raft cluster...\n";
+    Logger::info("Shutting down Raft cluster...");
 
     for (auto &node : nodes)
     {
@@ -1178,41 +1238,41 @@ void raftAlgorithm()
 
     std::this_thread::sleep_for(std::chrono::milliseconds(500));
 
-    std::cout << "Joining timer threads...\n";
+    Logger::info("Joining timer threads...");
     try
     {
         for (size_t i = 0; i < timers.size(); ++i)
         {
             if (timers[i].joinable())
             {
-                std::cout << "Joining timer thread " << i << "...\n";
+                Logger::info("Joining timer thread " + std::to_string(i) + "...");
                 timers[i].join();
-                std::cout << "Timer thread " << i << " joined\n";
+                Logger::info("Timer thread " + std::to_string(i) + " joined");
             }
         }
     }
     catch (const std::exception &e)
     {
-        std::cerr << "Exception joining timer threads: " << e.what() << "\n";
+        Logger::error("Exception joining timer threads: " + std::string(e.what()));
     }
 
-    std::cout << "Shutting down individual nodes...\n";
+    Logger::info("Shutting down individual nodes...");
     try
     {
         for (size_t i = 0; i < nodes.size(); ++i)
         {
-            std::cout << "Shutting down node " << i << "...\n";
+            Logger::info("Shutting down node " + std::to_string(i) + "...");
             nodes[i]->shutdownNode();
-            std::cout << "Node " << i << " shutdown complete\n";
+            Logger::info("Node " + std::to_string(i) + " shutdown complete");
         }
     }
     catch (const std::exception &e)
     {
-        std::cerr << "Exception during node shutdown: " << e.what() << "\n";
+        Logger::error("Exception during node shutdown: " + std::string(e.what()));
     }
 
-    std::cout << "Clearing node references...\n";
+    Logger::info("Clearing node references...");
     nodes.clear();
 
-    std::cout << "Raft cluster shutdown complete.\n";
+    Logger::info("Raft cluster shutdown complete.");
 }

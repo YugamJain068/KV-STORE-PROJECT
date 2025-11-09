@@ -15,6 +15,7 @@
 #include <memory>
 #include <shared_mutex>
 #include "snapshot.h"
+#include "metrics.h"
 
 struct Snapshot;
 
@@ -87,8 +88,8 @@ public:
     std::string handleClientCommand(const std::string &clientId, int requestId, const std::string command, const std::string key, const std::string value);
     std::string applyToStateMachine(const std::string &command);
 
-    std::unordered_map<std::string, int> clientLastRequest;         // clientId → lastRequestId
-    std::unordered_map<std::string, std::string> clientResultCache; // clientId → lastResult
+    std::unordered_map<std::string, int> clientLastRequest;        
+    std::unordered_map<std::string, std::string> clientResultCache;
     std::mutex clientMutex;
 
     std::shared_ptr<Snapshot> latestSnapshot;
@@ -98,7 +99,11 @@ public:
     std::atomic<bool> receivingSnapshot{false};
     int snapshotLeaderId = -1;
 
-    // Add this method to RaftNode class (in raft_node.h and implement in raft_node.cpp)
+    Metrics metrics;
+    nlohmann::json getStatus();
+    bool triggerSnapshot();
+    void updateLogMetrics();
+
 
     int getLogTerm(int index) const;
 
@@ -109,6 +114,15 @@ public:
     void appendLogEntry(const logEntry &entry);
 
     void truncateLogSafe(int lastIncludedIndex);
+
+    std::string getRoleString() const
+    {
+        if (state == NodeState::LEADER)
+            return "Leader";
+        if (state == NodeState::CANDIDATE)
+            return "Candidate";
+        return "Follower";
+    }
 };
 
 extern std::mutex store_mutex;

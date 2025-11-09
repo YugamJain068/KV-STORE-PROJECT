@@ -17,17 +17,17 @@ struct Snapshot
 };
 struct SnapshotChunk
 {
-    int term;                  // Leader’s term
-    int leaderId;              // Leader ID
-    int lastIncludedIndex;     // Index covered by the snapshot
-    int lastIncludedTerm;      // Term of lastIncludedIndex
+    int term;                  
+    int leaderId;              
+    int lastIncludedIndex;     
+    int lastIncludedTerm;      
 
-    int offset;                // Where this chunk belongs in snapshot
-    std::vector<char> data;    // Raw bytes of snapshot chunk
-    bool done;                 // True if this is the last chunk
+    int offset;                
+    std::vector<char> data;    
+    bool done;                 
 };
 
-// APIs
+
 void saveSnapshot(const Snapshot &snapshot, int nodeId);
 void truncateLog(int lastIncludedIndex, std::vector<logEntry> &log);
 Snapshot loadSnapshot(int nodeId);

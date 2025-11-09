@@ -223,6 +223,48 @@ CMakeFiles/runTests.dir/src/persist_functions.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/runTests.dir/src/persist_functions.cpp.s"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/yugam05/kvstore_project/src/persist_functions.cpp -o CMakeFiles/runTests.dir/src/persist_functions.cpp.s
 
+CMakeFiles/runTests.dir/src/decode_encodebase64.cpp.o: CMakeFiles/runTests.dir/flags.make
+CMakeFiles/runTests.dir/src/decode_encodebase64.cpp.o: /home/yugam05/kvstore_project/src/decode_encodebase64.cpp
+CMakeFiles/runTests.dir/src/decode_encodebase64.cpp.o: CMakeFiles/runTests.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/yugam05/kvstore_project/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_12) "Building CXX object CMakeFiles/runTests.dir/src/decode_encodebase64.cpp.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/runTests.dir/src/decode_encodebase64.cpp.o -MF CMakeFiles/runTests.dir/src/decode_encodebase64.cpp.o.d -o CMakeFiles/runTests.dir/src/decode_encodebase64.cpp.o -c /home/yugam05/kvstore_project/src/decode_encodebase64.cpp
+
+CMakeFiles/runTests.dir/src/decode_encodebase64.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/runTests.dir/src/decode_encodebase64.cpp.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/yugam05/kvstore_project/src/decode_encodebase64.cpp > CMakeFiles/runTests.dir/src/decode_encodebase64.cpp.i
+
+CMakeFiles/runTests.dir/src/decode_encodebase64.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/runTests.dir/src/decode_encodebase64.cpp.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/yugam05/kvstore_project/src/decode_encodebase64.cpp -o CMakeFiles/runTests.dir/src/decode_encodebase64.cpp.s
+
+CMakeFiles/runTests.dir/src/snapshot.cpp.o: CMakeFiles/runTests.dir/flags.make
+CMakeFiles/runTests.dir/src/snapshot.cpp.o: /home/yugam05/kvstore_project/src/snapshot.cpp
+CMakeFiles/runTests.dir/src/snapshot.cpp.o: CMakeFiles/runTests.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/yugam05/kvstore_project/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_13) "Building CXX object CMakeFiles/runTests.dir/src/snapshot.cpp.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/runTests.dir/src/snapshot.cpp.o -MF CMakeFiles/runTests.dir/src/snapshot.cpp.o.d -o CMakeFiles/runTests.dir/src/snapshot.cpp.o -c /home/yugam05/kvstore_project/src/snapshot.cpp
+
+CMakeFiles/runTests.dir/src/snapshot.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/runTests.dir/src/snapshot.cpp.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/yugam05/kvstore_project/src/snapshot.cpp > CMakeFiles/runTests.dir/src/snapshot.cpp.i
+
+CMakeFiles/runTests.dir/src/snapshot.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/runTests.dir/src/snapshot.cpp.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/yugam05/kvstore_project/src/snapshot.cpp -o CMakeFiles/runTests.dir/src/snapshot.cpp.s
+
+CMakeFiles/runTests.dir/src/logger.cpp.o: CMakeFiles/runTests.dir/flags.make
+CMakeFiles/runTests.dir/src/logger.cpp.o: /home/yugam05/kvstore_project/src/logger.cpp
+CMakeFiles/runTests.dir/src/logger.cpp.o: CMakeFiles/runTests.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/yugam05/kvstore_project/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_14) "Building CXX object CMakeFiles/runTests.dir/src/logger.cpp.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/runTests.dir/src/logger.cpp.o -MF CMakeFiles/runTests.dir/src/logger.cpp.o.d -o CMakeFiles/runTests.dir/src/logger.cpp.o -c /home/yugam05/kvstore_project/src/logger.cpp
+
+CMakeFiles/runTests.dir/src/logger.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/runTests.dir/src/logger.cpp.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/yugam05/kvstore_project/src/logger.cpp > CMakeFiles/runTests.dir/src/logger.cpp.i
+
+CMakeFiles/runTests.dir/src/logger.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/runTests.dir/src/logger.cpp.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/yugam05/kvstore_project/src/logger.cpp -o CMakeFiles/runTests.dir/src/logger.cpp.s
+
 # Object files for target runTests
 runTests_OBJECTS = \
 "CMakeFiles/runTests.dir/tests/kvstore_tests.cpp.o" \
@@ -235,7 +277,10 @@ runTests_OBJECTS = \
 "CMakeFiles/runTests.dir/src/wal.cpp.o" \
 "CMakeFiles/runTests.dir/src/server.cpp.o" \
 "CMakeFiles/runTests.dir/src/rpc_server.cpp.o" \
-"CMakeFiles/runTests.dir/src/persist_functions.cpp.o"
+"CMakeFiles/runTests.dir/src/persist_functions.cpp.o" \
+"CMakeFiles/runTests.dir/src/decode_encodebase64.cpp.o" \
+"CMakeFiles/runTests.dir/src/snapshot.cpp.o" \
+"CMakeFiles/runTests.dir/src/logger.cpp.o"
 
 # External object files for target runTests
 runTests_EXTERNAL_OBJECTS =
@@ -251,12 +296,15 @@ runTests: CMakeFiles/runTests.dir/src/wal.cpp.o
 runTests: CMakeFiles/runTests.dir/src/server.cpp.o
 runTests: CMakeFiles/runTests.dir/src/rpc_server.cpp.o
 runTests: CMakeFiles/runTests.dir/src/persist_functions.cpp.o
+runTests: CMakeFiles/runTests.dir/src/decode_encodebase64.cpp.o
+runTests: CMakeFiles/runTests.dir/src/snapshot.cpp.o
+runTests: CMakeFiles/runTests.dir/src/logger.cpp.o
 runTests: CMakeFiles/runTests.dir/build.make
 runTests: lib/libgtest.a
 runTests: lib/libgtest_main.a
 runTests: lib/libgtest.a
 runTests: CMakeFiles/runTests.dir/link.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/home/yugam05/kvstore_project/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_12) "Linking CXX executable runTests"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/home/yugam05/kvstore_project/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_15) "Linking CXX executable runTests"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/runTests.dir/link.txt --verbose=$(VERBOSE)
 
 # Rule to build all files generated by this target.

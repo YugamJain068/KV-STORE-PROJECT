@@ -3,7 +3,7 @@
 #include <nlohmann/json.hpp>
 #include <fstream>
 #include <filesystem>
-#include <iostream>
+#include "logger.h"
 
 using json = nlohmann::json;
 
@@ -12,13 +12,13 @@ void saveSnapshot(const Snapshot &snapshot, int nodeId)
     json j;
     j["metadata"]["lastIncludedIndex"] = snapshot.lastIncludedIndex;
     j["metadata"]["lastIncludedTerm"] = snapshot.lastIncludedTerm;
-    j["state"] = snapshot.kvState; // snapshot already holds state
+    j["state"] = snapshot.kvState;
 
     std::filesystem::create_directories("./snapshots");
     std::string filename = "./snapshots/node_" + std::to_string(nodeId) + ".snap";
 
     std::ofstream file(filename);
-    file << j.dump(4); // pretty-print
+    file << j.dump(4);
     file.close();
 }
 
@@ -77,13 +77,11 @@ void restoreFromSnapshot(int nodeId,
         // Reset logs after snapshot
         log.clear();
 
-        std::cout << "[Node " << nodeId << "] Restored from snapshot (Index="
-                  << snapshot.lastIncludedIndex
-                  << ", Term=" << snapshot.lastIncludedTerm << ")\n";
+        Logger::info("[NODE "+std::to_string(nodeId)+"] Restored from snapshot (Index="+std::to_string(snapshot.lastIncludedIndex)+", Term="+std::to_string(snapshot.lastIncludedTerm)+")");
     }
     catch (const std::exception &e)
     {
-        std::cout << "[Node " << nodeId << "] No snapshot found, starting fresh.\n";
+        Logger::info("[Node "+std::to_string(nodeId)+"] No snapshot found, starting fresh.");
     }
 }
 

@@ -4,9 +4,7 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 #include <fcntl.h>
-#include <string>
 #include <errno.h>
-#include <iostream>
 #include <thread>
 #include <nlohmann/json.hpp>
 #include <fstream>
@@ -14,6 +12,7 @@
 #include "persist_functions.h"
 #include "kvstore_global.h"
 #include "decode_encodebase64.h"
+#include "logger.h"
 
 extern std::vector<std::shared_ptr<RaftNode>> nodes;
 
@@ -22,11 +21,9 @@ Snapshot deserializeSnapshot(const std::vector<char> &buffer)
     Snapshot snap;
     std::istringstream iss(std::string(buffer.begin(), buffer.end()), std::ios::binary);
 
-    // Metadata
     iss.read(reinterpret_cast<char *>(&snap.lastIncludedIndex), sizeof(snap.lastIncludedIndex));
     iss.read(reinterpret_cast<char *>(&snap.lastIncludedTerm), sizeof(snap.lastIncludedTerm));
 
-    // State map size
     int size = 0;
     iss.read(reinterpret_cast<char *>(&size), sizeof(size));
 
@@ -34,12 +31,10 @@ Snapshot deserializeSnapshot(const std::vector<char> &buffer)
     {
         int klen = 0, vlen = 0;
 
-        // Read key
         iss.read(reinterpret_cast<char *>(&klen), sizeof(klen));
         std::string key(klen, '\0');
         iss.read(&key[0], klen);
 
-        // Read value
         iss.read(reinterpret_cast<char *>(&vlen), sizeof(vlen));
         std::string value(vlen, '\0');
         iss.read(&value[0], vlen);
@@ -82,7 +77,6 @@ void from_json(const nlohmann::json &j, AppendEntriesResponse &r)
     r.success = j.value("success", false);
 }
 
-// Convert InstallSnapshotRPC → JSON
 void to_json(nlohmann::json &j, const InstallSnapshotRPC &p)
 {
     j = nlohmann::json{
@@ -91,11 +85,10 @@ void to_json(nlohmann::json &j, const InstallSnapshotRPC &p)
         {"lastIncludedIndex", p.lastIncludedIndex},
         {"lastIncludedTerm", p.lastIncludedTerm},
         {"offset", p.offset},
-        {"data", base64Encode(p.data)}, // encode raw bytes
+        {"data", base64Encode(p.data)},
         {"done", p.done}};
 }
 
-// Convert JSON → InstallSnapshotRPC
 void from_json(const nlohmann::json &j, InstallSnapshotRPC &p)
 {
     j.at("term").get_to(p.term);
@@ -106,7 +99,7 @@ void from_json(const nlohmann::json &j, InstallSnapshotRPC &p)
 
     std::string chunkBase64;
     j.at("data").get_to(chunkBase64);
-    p.data = base64Decode(chunkBase64); // decode back to raw bytes
+    p.data = base64Decode(chunkBase64);
 
     j.at("done").get_to(p.done);
 }
@@ -119,7 +112,7 @@ std::string sendRPC(const std::string &targetIp, int targetPort, const std::stri
         int sock = socket(AF_INET, SOCK_STREAM, 0);
         if (sock < 0)
         {
-            std::cerr << "Socket creation failed\n";
+            Logger::error("Socket creation failed");
             return "";
         }
 
@@ -136,7 +129,7 @@ std::string sendRPC(const std::string &targetIp, int targetPort, const std::stri
 
         if (connect(sock, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0)
         {
-            std::cerr << "Connect failed to " << targetIp << ":" << targetPort << "\n";
+            Logger::error("Connect failed to " + targetIp + ":" + std::to_string(targetPort));
             close(sock);
             return "";
         }
@@ -150,7 +143,7 @@ std::string sendRPC(const std::string &targetIp, int targetPort, const std::stri
         {
             buffer[bytes_received] = '\0';
             response = buffer;
-            std::cout << "[RPC Reply] " << response << "\n";
+            Logger::info("[RPC Reply] " + response);
         }
 
         close(sock);
@@ -158,8 +151,8 @@ std::string sendRPC(const std::string &targetIp, int targetPort, const std::stri
     }
     catch (...)
     {
-        std::cerr << "Connect failed to " << targetIp << ":" << targetPort << "\n";
-        return "{}"; // return empty JSON object instead of empty string
+        Logger::error("Connect failed to " + targetIp + ":" + std::to_string(targetPort));
+        return "{}";
     }
 }
 #endif
@@ -183,7 +176,7 @@ void handle_node_client(int client_socket, std::shared_ptr<RaftNode> node)
     buffer[bytes_received] = '\0';
     std::string request(buffer);
 
-    std::cout << "[RPC Received] " << request << "\n";
+    Logger::info("[RPC Received] " + request);
 
     nlohmann::json response;
 
@@ -201,6 +194,9 @@ void handle_node_client(int client_socket, std::shared_ptr<RaftNode> node)
             int lastLogTerm = j.value("lastLogTerm", 0);
 
             bool voteGranted = false;
+
+            node->metrics.requestVotesReceived++;
+
             if (term < node->currentTerm)
             {
                 voteGranted = false;
@@ -223,6 +219,7 @@ void handle_node_client(int client_socket, std::shared_ptr<RaftNode> node)
                     voteGranted = true;
                     node->votedFor = candidateId;
                     persistMetadata(node);
+                    node->metrics.votesReceived++;
                 }
             }
 
@@ -241,110 +238,116 @@ void handle_node_client(int client_socket, std::shared_ptr<RaftNode> node)
 
             bool success = false;
 
+            node->metrics.appendEntriesReceived++;
+
             std::lock_guard<std::mutex> lock(node->mtx);
 
             if (node->receivingSnapshot.load() && node->snapshotLeaderId == leaderId)
             {
-                std::cout << "[Node " << node->id << "] Rejecting AppendEntries - snapshot transfer in progress\n";
-                response = {{"term", node->currentTerm}, {"success", false}};
+                Logger::info(node->id, node->getRoleString(), node->currentTerm,
+                             "Rejecting AppendEntries - snapshot transfer in progress");
 
                 std::string respStr = response.dump();
                 send(client_socket, respStr.c_str(), respStr.size(), 0);
-                std::cout << "[RPC Reply] " << respStr << "\n";
+                Logger::info("[RPC Reply] " + respStr);
                 close(client_socket);
                 return;
             }
 
             if (term < node->currentTerm)
             {
-                // Stale leader
                 success = false;
-                std::cout << "[Node " << node->id << "] Rejected stale AppendEntries from term "
-                          << term << " (current: " << node->currentTerm << ")\n";
+                Logger::info(node->id, node->getRoleString(), node->currentTerm,
+                             "Rejected stale AppendEntries from term " + std::to_string(term) +
+                                 " (current: " + std::to_string(node->currentTerm) + ")");
             }
             else
             {
-                // Step down if term is higher
+                
                 if (term > node->currentTerm || node->state == NodeState::CANDIDATE)
                 {
-                    std::cout << "[Node " << node->id << "] Stepping down due to AppendEntries from term "
-                              << term << "\n";
+                    Logger::info(node->id, node->getRoleString(), node->currentTerm,
+                                 "Stepping down due to AppendEntries from term " + std::to_string(term));
                     node->becomeFollower(term);
                 }
 
-                // Reset heartbeat / timeout
+                
                 node->lastHeartbeatTimePoint = Clock::now();
                 node->electionTimeout = std::chrono::milliseconds(2000 + rand() % 2000);
                 node->leaderId = leaderId;
                 node->cv.notify_all();
-                std::cout << "[Node " << node->id << "] Heartbeat received from Leader "
-                          << leaderId << ", timeout reset to "
-                          << node->electionTimeout.count() << "ms\n";
+                Logger::info(node->id, node->getRoleString(), node->currentTerm,
+                             "Heartbeat received from Leader " + std::to_string(leaderId) +
+                                 ", timeout reset to " + std::to_string(node->electionTimeout.count()) + "ms");
 
-                // --- Log consistency check ---
+                
                 if (prevLogIndex >= 0)
                 {
-                    // Check if prevLogIndex is covered by snapshot
+                    
                     if (node->latestSnapshot && prevLogIndex < node->latestSnapshot->lastIncludedIndex)
                     {
-                        // Leader is behind our snapshot - shouldn't happen in normal operation
+                        
                         success = false;
-                        std::cout << "[Node " << node->id << "] prevLogIndex " << prevLogIndex
-                                  << " is behind our snapshot at " << node->latestSnapshot->lastIncludedIndex << "\n";
+                        Logger::info(node->id, node->getRoleString(), node->currentTerm,
+                                     "prevLogIndex " + std::to_string(prevLogIndex) +
+                                         " is behind our snapshot at " + std::to_string(node->latestSnapshot->lastIncludedIndex));
                     }
                     else if (node->latestSnapshot && prevLogIndex == node->latestSnapshot->lastIncludedIndex)
                     {
-                        // prevLogIndex matches our snapshot boundary - this is valid
+                        
                         success = (prevLogTerm == node->latestSnapshot->lastIncludedTerm);
-                        std::cout << "[Node " << node->id << "] prevLogIndex matches snapshot boundary, success="
-                                  << success << "\n";
+                        Logger::info(node->id, node->getRoleString(), node->currentTerm,
+                                     "prevLogIndex matches snapshot boundary, success=" + std::to_string(success));
                     }
                     else
                     {
-                        // prevLogIndex is beyond snapshot, check actual log
+                        
                         int logIndex = prevLogIndex;
                         if (node->latestSnapshot)
                         {
                             logIndex = prevLogIndex - node->latestSnapshot->lastIncludedIndex - 1;
                         }
 
-                        std::cout << "[Node " << node->id << "] Consistency check: prevLogIndex=" << prevLogIndex
-                                  << ", prevLogTerm=" << prevLogTerm
-                                  << ", logIndex=" << logIndex
-                                  << ", log.size()=" << node->log.size()
-                                  << ", snapshot=" << (node->latestSnapshot ? node->latestSnapshot->lastIncludedIndex : -1);
+                        Logger::info(node->id, node->getRoleString(), node->currentTerm,
+                                     "Consistency check: prevLogIndex=" + std::to_string(prevLogIndex) +
+                                         ", prevLogTerm=" + std::to_string(prevLogTerm) +
+                                         ", logIndex=" + std::to_string(logIndex) +
+                                         ", log.size()=" + std::to_string(node->log.size()) +
+                                         ", snapshot=" + std::to_string(node->latestSnapshot ? node->latestSnapshot->lastIncludedIndex : -1));
 
-                        // Check bounds and term match
+                        
                         if (logIndex < 0 || logIndex >= (int)node->log.size())
                         {
-                            // Out of bounds
+                            
                             success = false;
-                            std::cout << "[Node " << node->id << "] Log inconsistency: prevLogIndex="
-                                      << prevLogIndex << ", calculated logIndex=" << logIndex
-                                      << ", log.size()=" << node->log.size() << "\n";
+                            Logger::info(node->id, node->getRoleString(), node->currentTerm,
+                                         "Log inconsistency: prevLogIndex=" + std::to_string(prevLogIndex) +
+                                             ", calculated logIndex=" + std::to_string(logIndex) +
+                                             ", log.size()=" + std::to_string(node->log.size()));
                         }
                         else if (node->log[logIndex].term != prevLogTerm)
                         {
-                            // Term mismatch
+                            
                             success = false;
-                            std::cout << "[Node " << node->id << "] Term mismatch at prevLogIndex="
-                                      << prevLogIndex << " (expected term=" << prevLogTerm
-                                      << ", actual term=" << node->log[logIndex].term << ")\n";
+                            Logger::info(node->id, node->getRoleString(), node->currentTerm,
+                                         "Term mismatch at prevLogIndex=" + std::to_string(prevLogIndex) +
+                                             " (expected term=" + std::to_string(prevLogTerm) +
+                                             ", actual term=" + std::to_string(node->log[logIndex].term) + ")");
                         }
                         else
                         {
-                            // Everything matches
+                            
                             success = true;
                         }
                     }
                 }
                 else
                 {
-                    // prevLogIndex = -1 means empty log, always valid
+                    
                     success = true;
                 }
 
-                // --- Append entries if consistent ---
+                
                 if (success && !entries.empty())
                 {
                     int insertIndex = prevLogIndex + 1;
@@ -355,10 +358,10 @@ void handle_node_client(int client_socket, std::shared_ptr<RaftNode> node)
                         logInsertIndex = insertIndex - node->latestSnapshot->lastIncludedIndex - 1;
                     }
 
-                    // Remove conflicting entries
+                    
                     if (logInsertIndex >= 0 && logInsertIndex < (int)node->log.size())
                     {
-                        // Check if existing entry conflicts
+                        
                         logEntry firstNewEntry = entries[0].get<logEntry>();
                         if (node->log[logInsertIndex].term != firstNewEntry.term)
                         {
@@ -366,9 +369,9 @@ void handle_node_client(int client_socket, std::shared_ptr<RaftNode> node)
                         }
                         else
                         {
-                            // Entry matches, skip appending duplicates
-                            std::cout << "[Node " << node->id << "] Entry at index "
-                                      << insertIndex << " already exists and matches\n";
+                            
+                            Logger::info(node->id, node->getRoleString(), node->currentTerm,
+                                         "Entry at index " + std::to_string(insertIndex) + " already exists and matches");
                             success = true;
                             goto skip_append;
                         }
@@ -383,18 +386,19 @@ void handle_node_client(int client_socket, std::shared_ptr<RaftNode> node)
                             expectedLogIdx = e.index - node->latestSnapshot->lastIncludedIndex - 1;
                         }
 
-                        // Only append if we don't have this entry
+                        
                         if (expectedLogIdx >= (int)node->log.size())
                         {
                             node->log.push_back(e);
-                            std::cout << "[Node " << node->id << "] Appended entry: " << e.command << "\n";
+                            Logger::info(node->id, node->getRoleString(), node->currentTerm,
+                                         "Appended entry: " + e.command);
                         }
                     }
                 }
             skip_append:
                 persistMetadata(node);
 
-                // --- Update commit index safely ---
+                
                 if (success && leaderCommit > node->commitIndex)
                 {
                     int newCommitIndex = std::min(leaderCommit, node->getLogSize() - 1);
@@ -416,22 +420,26 @@ void handle_node_client(int client_socket, std::shared_ptr<RaftNode> node)
                         }
                     }
 
-                    // Create snapshot if needed
+                    
                     int totalLogSize = node->getLogSize();
 
-                    std::cout << "[Node " << node->id << "] After applying: totalLogSize="
-                              << totalLogSize << ", log.size()=" << node->log.size()
-                              << ", lastApplied=" << node->lastApplied << "\n";
+                    Logger::info(node->id, node->getRoleString(), node->currentTerm,
+                                 "After applying: totalLogSize=" + std::to_string(totalLogSize) +
+                                     ", log.size()=" + std::to_string(node->log.size()) +
+                                     ", lastApplied=" + std::to_string(node->lastApplied));
+
                     if ((int)node->log.size() >= SNAPSHOT_THRESHOLD)
                     {
-                        std::cout << "[Node " << node->id << "] STARTING snapshot creation at totalLogSize="
-                                  << totalLogSize << ", lastApplied=" << node->lastApplied << "\n";
+                        Logger::info(node->id, node->getRoleString(), node->currentTerm,
+                                     "STARTING snapshot creation at totalLogSize=" + std::to_string(totalLogSize) +
+                                         ", lastApplied=" + std::to_string(node->lastApplied));
 
                         auto newSnapshot = std::make_shared<Snapshot>();
                         newSnapshot->lastIncludedIndex = node->lastApplied;
                         newSnapshot->lastIncludedTerm = node->getLogTerm(node->lastApplied);
 
-                        std::cout << "[Node " << node->id << "] About to dump KV store...\n";
+                        Logger::info(node->id, node->getRoleString(), node->currentTerm,
+                                     "About to dump KV store...");
                         {
                             std::lock_guard<std::mutex> storeLock(store_mutex);
                             newSnapshot->kvState = store.dumpToMap();
@@ -455,9 +463,9 @@ void handle_node_client(int client_socket, std::shared_ptr<RaftNode> node)
 
                         persistMetadata(node);
 
-                        std::cout << "[Node " << node->id << "] Created snapshot at index "
-                                  << newSnapshot->lastIncludedIndex
-                                  << " (term " << newSnapshot->lastIncludedTerm << ")\n";
+                        Logger::info(node->id, node->getRoleString(), node->currentTerm, 
+    "Created snapshot at index " + std::to_string(newSnapshot->lastIncludedIndex) +
+    " (term " + std::to_string(newSnapshot->lastIncludedTerm) + ")");
                     }
                 }
             }
@@ -466,8 +474,9 @@ void handle_node_client(int client_socket, std::shared_ptr<RaftNode> node)
                 {"term", node->currentTerm},
                 {"success", success}};
 
-            std::cout << "[Node " << node->id << "] AppendEntries response: success="
-                      << success << ", term=" << node->currentTerm << "\n";
+            Logger::info(node->id, node->getRoleString(), node->currentTerm, 
+    "AppendEntries response: success=" + std::to_string(success) + 
+    ", term=" + std::to_string(node->currentTerm));
         }
 
         else if (rpcType == "ClientRequest")
@@ -478,36 +487,139 @@ void handle_node_client(int client_socket, std::shared_ptr<RaftNode> node)
             std::string clientId = j.value("clientId", "");
             int requestId = j.value("requestId", 0);
 
+            node->metrics.clientRequestsReceived++;
+
             if (node->state != NodeState::LEADER)
             {
                 response = {
                     {"status", "redirect"},
-                    {"leaderId", node->leaderId} // send current leader ID for client
+                    {"leaderId", node->leaderId} 
                 };
+                node->metrics.clientRequestsRedirected++;
             }
             else
             {
-                // handleClientCommand now returns a string result from KV store
+                
                 std::string result = node->handleClientCommand(clientId, requestId, command, key, value);
 
                 if (result == "OK")
                 {
                     response = {{"status", "OK"}};
+                    node->metrics.clientRequestsSucceeded++;
                 }
                 else if (result == "key not found")
                 {
                     response = {{"status", "error"}, {"msg", result}};
+                    node->metrics.clientRequestsFailed++;
                 }
                 else
                 {
-                    // for GET, return the value directly
+                    
                     if (command == "GET")
+                    {
                         response = {{"status", "OK"}, {"value", result}};
+                        node->metrics.clientRequestsSucceeded++;
+                    }
                     else
+                    {
                         response = {{"status", "error"}, {"msg", result}};
+                        node->metrics.clientRequestsFailed++;
+                    }
                 }
             }
         }
+        else if (rpcType == "STATUS")
+        {
+            
+            response = node->getStatus();
+            response["status"] = "OK";
+        }
+        else if (rpcType == "METRICS")
+        {
+            
+            node->updateLogMetrics();
+            response = node->metrics.toJson();
+            response["status"] = "OK";
+        }
+        else if (rpcType == "LOGSIZE")
+        {
+            
+            int totalLogSize = node->getLogSize();
+            int physicalLogSize = node->log.size();
+            int snapshotIndex = node->latestSnapshot ? node->latestSnapshot->lastIncludedIndex : 0;
+
+            response = {
+                {"status", "OK"},
+                {"total_log_size", totalLogSize},
+                {"physical_log_size", physicalLogSize},
+                {"snapshot_index", snapshotIndex},
+                {"commit_index", node->commitIndex},
+                {"last_applied", node->lastApplied}};
+        }
+        else if (rpcType == "SNAPSHOT_NOW")
+        {
+            
+            bool success = node->triggerSnapshot();
+
+            if (success)
+            {
+                response = {
+                    {"status", "OK"},
+                    {"message", "Snapshot created successfully"},
+                    {"snapshot_index", node->latestSnapshot->lastIncludedIndex},
+                    {"snapshot_term", node->latestSnapshot->lastIncludedTerm}};
+            }
+            else
+            {
+                response = {
+                    {"status", "error"},
+                    {"message", "Failed to create snapshot (log may be empty)"}};
+            }
+        }
+        else if (rpcType == "GET_LOGS")
+        {
+            
+            int count = j.value("count", 10); 
+            int start = std::max(0, (int)node->log.size() - count);
+
+            nlohmann::json logs = nlohmann::json::array();
+            for (int i = start; i < (int)node->log.size(); i++)
+            {
+                logs.push_back({{"index", node->log[i].index},
+                                {"term", node->log[i].term},
+                                {"command", node->log[i].command}});
+            }
+
+            response = {
+                {"status", "OK"},
+                {"logs", logs},
+                {"total_count", node->log.size()},
+                {"returned_count", logs.size()}};
+        }
+        else if (rpcType == "CLUSTER_INFO")
+        {
+            
+            nlohmann::json nodes = nlohmann::json::array();
+
+            for (size_t i = 0; i < node->peerRpcPorts.size(); i++)
+            {
+                int nextIdx = (i < node->nextIndex.size()) ? node->nextIndex[i] : -1;
+                int matchIdx = (i < node->matchIndex.size()) ? node->matchIndex[i] : -1;
+
+                nodes.push_back({{"node_id", i},
+                                 {"port", node->peerRpcPorts[i]},
+                                 {"next_index", nextIdx},
+                                 {"match_index", matchIdx}});
+            }
+
+            response = {
+                {"status", "OK"},
+                {"current_node_id", node->id},
+                {"cluster_size", node->peerRpcPorts.size()},
+                {"nodes", nodes},
+                {"leader_id", node->leaderId}};
+        }
+
         else if (rpcType == "InstallSnapshot")
         {
             try
@@ -520,14 +632,16 @@ void handle_node_client(int client_socket, std::shared_ptr<RaftNode> node)
                 std::string chunkBase64 = j.value("data", "");
                 bool done = j.value("done", false);
 
-                // Optional: sequence tracking for debugging
+                
                 int chunkNum = j.value("chunkNum", -1);
                 int totalChunks = j.value("totalChunks", -1);
 
+                node->metrics.installSnapshotsReceived++;
+
                 if (chunkNum >= 0)
                 {
-                    std::cout << "[Node " << node->id << "] Receiving chunk " << (chunkNum + 1)
-                              << "/" << totalChunks << "\n";
+                   Logger::info(node->id, node->getRoleString(), node->currentTerm, 
+    "Receiving chunk " + std::to_string(chunkNum + 1) + "/" + std::to_string(totalChunks));
                 }
 
                 if (term < node->currentTerm)
@@ -539,15 +653,16 @@ void handle_node_client(int client_socket, std::shared_ptr<RaftNode> node)
                     if (term > node->currentTerm)
                         node->becomeFollower(term);
 
-                    // Reset buffer on first chunk
+                    
                     if (offset == 0)
                     {
                         node->snapshotBuffer.clear();
-                        node->snapshotBuffer.reserve(1024 * 1024); // Pre-allocate 1MB
-                        std::cout << "[Node " << node->id << "] Starting snapshot reception, buffer cleared\n";
+                        node->snapshotBuffer.reserve(1024 * 1024); 
+Logger::info(node->id, node->getRoleString(), node->currentTerm, 
+    "Starting snapshot reception, buffer cleared");
                     }
 
-                    // Decode and validate chunk
+                    
                     std::vector<char> chunk;
                     try
                     {
@@ -556,39 +671,40 @@ void handle_node_client(int client_socket, std::shared_ptr<RaftNode> node)
                             chunk = base64Decode(chunkBase64);
                         }
 
-                        // Expand buffer if needed
+                        
                         if (node->snapshotBuffer.size() < offset + chunk.size())
                         {
                             node->snapshotBuffer.resize(offset + chunk.size());
                         }
 
-                        // Copy chunk data
+                        
                         if (!chunk.empty())
                         {
                             std::copy(chunk.begin(), chunk.end(), node->snapshotBuffer.begin() + offset);
                         }
 
-                        std::cout << "[Node " << node->id << "] Chunk written at offset " << offset
-                                  << ", size " << chunk.size() << ", buffer size now "
-                                  << node->snapshotBuffer.size() << "\n";
+                        Logger::info(node->id, node->getRoleString(), node->currentTerm, 
+    "Chunk written at offset " + std::to_string(offset) +
+    ", size " + std::to_string(chunk.size()) + ", buffer size now " +
+    std::to_string(node->snapshotBuffer.size()));
 
                         if (done)
                         {
-                            // Deserialize snapshot
+                            
                             Snapshot snap = deserializeSnapshot(node->snapshotBuffer);
 
-                            // Save to disk
+                            
                             saveSnapshot(snap, node->id);
 
-                            // Update state machine and clear log
+                            
                             {
                                 std::lock_guard<std::mutex> lock(node->mtx);
                                 store.loadFromMap(snap.kvState);
                                 node->lastApplied = snap.lastIncludedIndex;
                                 node->commitIndex = snap.lastIncludedIndex;
-                                node->log.clear(); // ✅ Clear ALL log entries
+                                node->log.clear(); 
 
-                                // Set snapshot
+                                
                                 auto snapshotPtr = std::make_shared<Snapshot>(snap);
                                 node->latestSnapshot = snapshotPtr;
                             }
@@ -601,15 +717,15 @@ void handle_node_client(int client_socket, std::shared_ptr<RaftNode> node)
                     }
                     catch (const std::exception &e)
                     {
-                        std::cerr << "[Node " << node->id << "] Chunk processing error: " << e.what() << "\n";
-                        response = {{"term", node->currentTerm}, {"success", false}, {"error", "processing_failed"}};
+Logger::error(node->id, node->getRoleString(), node->currentTerm, 
+    "Chunk processing error: " + std::string(e.what()));                        response = {{"term", node->currentTerm}, {"success", false}, {"error", "processing_failed"}};
                     }
                 }
             }
             catch (const std::exception &e)
             {
-                std::cerr << "[Node " << node->id << "] InstallSnapshot handler error: " << e.what() << "\n";
-                response = {{"term", node->currentTerm}, {"success", false}, {"error", "handler_failed"}};
+Logger::error(node->id, node->getRoleString(), node->currentTerm, 
+    "InstallSnapshot handler error: " + std::string(e.what()));                response = {{"term", node->currentTerm}, {"success", false}, {"error", "handler_failed"}};
             }
         }
         else
@@ -619,14 +735,14 @@ void handle_node_client(int client_socket, std::shared_ptr<RaftNode> node)
     }
     catch (std::exception &e)
     {
-        std::cerr << "JSON parse error: " << e.what() << "\n";
+Logger::error("JSON parse error: " + std::string(e.what()));
         response = {{"error", "Invalid JSON"}};
     }
 
-    // Send JSON back to client
+    
     std::string respStr = response.dump();
     send(client_socket, respStr.c_str(), respStr.size(), 0);
-    std::cout << "[RPC Reply] " << respStr << "\n";
+    Logger::info("[RPC Reply] " + respStr);
 
     close(client_socket);
 }
@@ -636,7 +752,7 @@ void startRaftRPCServer(int port, std::shared_ptr<RaftNode> node)
     int socket_fd = socket(AF_INET, SOCK_STREAM, 0);
     if (socket_fd < 0)
     {
-        std::cerr << "Socket creation failed\n";
+Logger::error("Socket creation failed");
         return;
     }
 
@@ -645,7 +761,7 @@ void startRaftRPCServer(int port, std::shared_ptr<RaftNode> node)
     int opt = 1;
     setsockopt(socket_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
 
-    // Non-blocking mode
+    
     int flags = fcntl(socket_fd, F_GETFL, 0);
     fcntl(socket_fd, F_SETFL, flags | O_NONBLOCK);
 
@@ -656,19 +772,19 @@ void startRaftRPCServer(int port, std::shared_ptr<RaftNode> node)
 
     if (bind(socket_fd, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0)
     {
-        std::cerr << "Bind failed\n";
+Logger::error("Bind failed");
         close(socket_fd);
         return;
     }
 
     if (listen(socket_fd, 5) < 0)
     {
-        std::cerr << "Listen failed\n";
+Logger::error("Listen failed");
         close(socket_fd);
         return;
     }
 
-    std::cout << "RPC Server started on port " << port << "\n";
+Logger::info("RPC Server started on port " + std::to_string(port));
 
     while (!node->stopRPC)
     {
@@ -683,7 +799,7 @@ void startRaftRPCServer(int port, std::shared_ptr<RaftNode> node)
                 std::this_thread::sleep_for(std::chrono::milliseconds(50));
                 continue;
             }
-            std::cerr << "Accept failed\n";
+Logger::error("Accept failed");
             continue;
         }
 
@@ -692,5 +808,5 @@ void startRaftRPCServer(int port, std::shared_ptr<RaftNode> node)
 
     close(socket_fd);
     node->serverSocket = -1;
-    std::cout << "RPC Server on port " << port << " stopped.\n";
+Logger::info("RPC Server on port " + std::to_string(port) + " stopped.");
 }

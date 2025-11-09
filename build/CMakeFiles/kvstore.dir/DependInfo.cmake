@@ -10,6 +10,7 @@ set(CMAKE_DEPENDS_LANGUAGES
 set(CMAKE_DEPENDS_DEPENDENCY_FILES
   "/home/yugam05/kvstore_project/src/decode_encodebase64.cpp" "CMakeFiles/kvstore.dir/src/decode_encodebase64.cpp.o" "gcc" "CMakeFiles/kvstore.dir/src/decode_encodebase64.cpp.o.d"
   "/home/yugam05/kvstore_project/src/kvstore.cpp" "CMakeFiles/kvstore.dir/src/kvstore.cpp.o" "gcc" "CMakeFiles/kvstore.dir/src/kvstore.cpp.o.d"
+  "/home/yugam05/kvstore_project/src/logger.cpp" "CMakeFiles/kvstore.dir/src/logger.cpp.o" "gcc" "CMakeFiles/kvstore.dir/src/logger.cpp.o.d"
   "/home/yugam05/kvstore_project/src/main.cpp" "CMakeFiles/kvstore.dir/src/main.cpp.o" "gcc" "CMakeFiles/kvstore.dir/src/main.cpp.o.d"
   "/home/yugam05/kvstore_project/src/persist_functions.cpp" "CMakeFiles/kvstore.dir/src/persist_functions.cpp.o" "gcc" "CMakeFiles/kvstore.dir/src/persist_functions.cpp.o.d"
   "/home/yugam05/kvstore_project/src/raft_node.cpp" "CMakeFiles/kvstore.dir/src/raft_node.cpp.o" "gcc" "CMakeFiles/kvstore.dir/src/raft_node.cpp.o.d"

@@ -297,4 +297,10 @@ CMakeFiles/runTests.dir/src/persist_functions.cpp.o: \
  /usr/include/c++/13/bits/unique_lock.h \
  /usr/include/c++/13/condition_variable /usr/include/c++/13/atomic \
  /usr/include/c++/13/thread /usr/include/c++/13/bits/std_thread.h \
- /usr/include/c++/13/bits/this_thread_sleep.h
+ /usr/include/c++/13/bits/this_thread_sleep.h \
+ /usr/include/c++/13/shared_mutex \
+ /home/yugam05/kvstore_project/src/snapshot.h \
+ /home/yugam05/kvstore_project/src/kvstore.h /usr/include/c++/13/optional \
+ /home/yugam05/kvstore_project/src/wal.h \
+ /home/yugam05/kvstore_project/src/log_entry.h \
+ /home/yugam05/kvstore_project/src/metrics.h

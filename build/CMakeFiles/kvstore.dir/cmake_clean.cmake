@@ -3,6 +3,8 @@ file(REMOVE_RECURSE
   "CMakeFiles/kvstore.dir/src/decode_encodebase64.cpp.o.d"
   "CMakeFiles/kvstore.dir/src/kvstore.cpp.o"
   "CMakeFiles/kvstore.dir/src/kvstore.cpp.o.d"
+  "CMakeFiles/kvstore.dir/src/logger.cpp.o"
+  "CMakeFiles/kvstore.dir/src/logger.cpp.o.d"
   "CMakeFiles/kvstore.dir/src/main.cpp.o"
   "CMakeFiles/kvstore.dir/src/main.cpp.o.d"
   "CMakeFiles/kvstore.dir/src/persist_functions.cpp.o"
