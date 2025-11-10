@@ -298,7 +298,13 @@ kvstore_project/
 
 ---
 
-## 🎥 Video Demo
+## 🎥 Screenshots and Video Demo
+
+![Screenshot 1](assets/Screenshot%202025-11-10%20222719.png)
+
+![Screenshot 2](assets/Screenshot%202025-11-10%20222827.png)
+
+
 [![View Demo on Google Drive](assets/Screenshot%202025-11-10%20222652.png)](https://drive.google.com/drive/u/0/folders/1KWkJYHPY7rt5WFnoz_0oOhH-K5Sm6Qbc)
 
 ---
