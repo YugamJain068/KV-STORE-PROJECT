@@ -1,15 +1,17 @@
 {
     "clientLastRequest": {
-        "client-6": 3,
+        "client-10": 3,
+        "client-6": 4,
         "client-7": 15,
-        "client-9": 3
+        "client-9": 2
     },
     "clientResultCache": {
-        "client-6": "vlue10",
+        "client-10": "key not found",
+        "client-6": "value10",
         "client-7": "key not found",
         "client-9": "OK"
     },
-    "currentTerm": 6,
+    "currentTerm": 7,
     "logEntries": [
         {
             "command": "PUT car ferrari",
@@ -115,7 +117,47 @@
             "command": "GET jayendra ",
             "index": 20,
             "term": 6
+        },
+        {
+            "command": "PUT key1 value1",
+            "index": 21,
+            "term": 7
+        },
+        {
+            "command": "GET key1 ",
+            "index": 22,
+            "term": 7
+        },
+        {
+            "command": "GET key1 ",
+            "index": 23,
+            "term": 7
+        },
+        {
+            "command": "PUT key1 value10",
+            "index": 24,
+            "term": 7
+        },
+        {
+            "command": "GET key1 ",
+            "index": 25,
+            "term": 7
+        },
+        {
+            "command": "GET key1 ",
+            "index": 26,
+            "term": 7
+        },
+        {
+            "command": "DELETE key1 ",
+            "index": 27,
+            "term": 7
+        },
+        {
+            "command": "GET key1 ",
+            "index": 28,
+            "term": 7
         }
     ],
-    "votedFor": 2
+    "votedFor": 0
 }
