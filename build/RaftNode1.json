@@ -5,7 +5,7 @@
     "clientResultCache": {
         "client-6": "val100"
     },
-    "currentTerm": 5,
+    "currentTerm": 6,
     "logEntries": [
         {
             "command": "PUT car ferrari",
@@ -86,7 +86,32 @@
             "command": "GET key10 ",
             "index": 15,
             "term": 5
+        },
+        {
+            "command": "PUT jayendra 50",
+            "index": 16,
+            "term": 6
+        },
+        {
+            "command": "GET jayendra ",
+            "index": 17,
+            "term": 6
+        },
+        {
+            "command": "GET jayendra ",
+            "index": 18,
+            "term": 6
+        },
+        {
+            "command": "DELETE jayendra ",
+            "index": 19,
+            "term": 6
+        },
+        {
+            "command": "GET jayendra ",
+            "index": 20,
+            "term": 6
         }
     ],
-    "votedFor": 0
+    "votedFor": 2
 }

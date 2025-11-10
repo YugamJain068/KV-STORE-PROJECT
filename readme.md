@@ -1,306 +1,306 @@
-KVStore – Distributed Key-Value Store with Raft Consensus
-=========================================================
+# KVStore – Distributed Key-Value Store with Raft Consensus
 
-Overview
---------
+## Overview
 
-KVStore is a **distributed, consensus-based key-value store** written in C++ that uses the **Raft consensus algorithm** for data consistency across multiple nodes. It supports basic CRUD operations (PUT, GET, DELETE) with **Write-Ahead Logging (WAL)** for durability, **multi-threaded client handling** for concurrency, and **distributed consensus** for fault tolerance.
+**KVStore** is a **distributed, fault-tolerant key-value database** built in **C++**, implementing the **Raft consensus algorithm** to maintain strong consistency across multiple nodes.  
+It provides **durable, highly available storage** with **write-ahead logging (WAL)**, **snapshotting**, and **multi-threaded concurrency** — enabling resilient state recovery even under failures.
 
-Features
---------
+---
 
-*   **Raft Consensus Algorithm**: Ensures strong consistency across distributed nodes
-    
-*   **Leader Election**: Automatic leader election with randomized timeouts
-    
-*   **Log Replication**: Commands are replicated across majority of nodes before commit
-    
-*   **Persistent State**: Term, votedFor, and log entries persist across restarts
-    
-*   **TCP-based RPC**: Inter-node communication via JSON-based RPCs
-    
-*   **Thread-Safe Operations**: Uses std::mutex to protect shared state
-    
-*   **WAL Persistence**: Ensures data recovery after crashes or restarts
-    
-*   **Multi-node Deployment**: Run multiple nodes on different ports
-    
-*   **Basic Commands**:
-    
-    *   PUT – Insert or update a key-value pair (leader only)
-        
-    *   GET – Retrieve the value for a key
-        
-    *   DELETE – Remove a key-value pair (leader only)
-        
-    *   EXIT – Close the client connection
-        
+## ✨ Key Features
 
-Architecture
-------------
+- 🧠 **Raft Consensus Algorithm** – Leader-based consistency with majority commit rule  
+- ⚡ **Automatic Leader Election** – Randomized election timeouts prevent split votes  
+- 🔁 **Log Replication** – Replicates write commands across all nodes before commit  
+- 💾 **Persistent State** – Term, votedFor, and logs persisted to disk  
+- 📡 **TCP-based RPC** – Inter-node communication via JSON-based RPCs  
+- 🔐 **Thread-Safe Operations** – Uses `std::mutex` for critical section protection  
+- 🧱 **Write-Ahead Logging (WAL)** – Guarantees crash recovery and durability  
+- 📷 **Snapshotting & Checkpointing** – Compact logs and store periodic state snapshots  
+- 🧭 **CLI Admin Tool** – Cluster diagnostics, node term, and leader state introspection  
+- 📊 **Metrics & Logging** – Leader term, node role, and replication statistics  
+- 🧩 **Multi-node Deployment** – Seamless setup for 3+ nodes  
+## 💻 Command Reference
 
-### Raft Implementation
+| **Category** | **Command** | **Description** |
+|---------------|-------------|-----------------|
+| **🧩 Basic Commands** | `PUT <key> <value>` | Add or update a key-value pair |
+|  | `GET <key>` | Retrieve the value for a key |
+|  | `DELETE <key>` | Delete a key from the store |
+| **⚙️ Advanced Formats** | `PUT --key <k> --value <v>` | Use named parameters for clarity |
+|  | `PUT <key> "value with spaces"` | Support quoted values containing spaces |
+| **🛠️ Admin Commands** | `STATUS` | Display current node and role information |
+|  | `METRICS` | Show detailed performance and resource metrics |
+|  | `LOGSIZE` | Show size and details of the Raft log |
+|  | `SNAPSHOT` | Trigger a manual snapshot checkpoint |
+|  | `LOGS [count]` | Display recent Raft log entries |
+|  | `CLUSTER` | Show information about all cluster nodes |
+|  | `WATCH [seconds]` | Auto-refresh and display metrics periodically |
+| **🧰 Utility Commands** | `HELP` or `?` | Display this command reference |
+|  | `HISTORY` | Show previously executed commands |
+|  | `!!` | Repeat the last executed command |
+|  | `!<n>` | Repeat the *nth* command from history |
+|  | `STATS` | Show network and connection statistics |
+|  | `CLEAR` | Clear the terminal screen |
+|  | `EXIT` | Gracefully close the client connection |
 
-*   **RaftNode Structure**: Contains node state, log entries, and consensus metadata
-    
-*   **Leader Election**: Nodes use randomized election timeouts to avoid split votes
-    
-*   **Log Replication**: Leaders replicate log entries to followers before committing
-    
-*   **Persistent Storage**: Critical Raft state persists to JSON files
-    
-*   **RPC Communication**: RequestVote and AppendEntries RPCs over TCP
-    
+---
 
-### Integration with KV Store
+## 🏗️ Architecture
 
-*   **Consensus-Driven**: All write operations go through Raft consensus
-    
-*   **Leader-Only Writes**: Only the leader accepts PUT/DELETE commands
-    
-*   **Committed Execution**: Commands apply to KV store only after majority replication
-    
-*   **Follower Redirection**: Non-leaders reject write operations
-    
+### Raft Consensus Layer
+- **Node Roles**: Follower, Candidate, Leader  
+- **Leader Election**: Randomized election timers ensure a single leader  
+- **Replication**: Leaders replicate log entries via AppendEntries RPCs  
+- **Persistence**: Each node maintains `term`, `votedFor`, and full Raft logs  
+- **Snapshotting**: Periodically creates compact snapshots to prevent log growth  
+- **Recovery**: Restarted nodes load persisted state & snapshots automatically  
 
-Build Instructions
-------------------
+### KV Store Integration
+- **Consensus-Driven Writes** – All modifications go through Raft commit  
+- **Read Consistency** – Follows leader’s committed state  
+- **Follower Redirection** – Non-leaders reject writes with redirect notice  
+- **Crash Recovery** – WAL + Snapshot replay ensures state integrity  
 
-``` bash   
-# Clone repository  
-git clone https://github.com/YugamJain068/KV-STORE-PROJECT  cd kvstore_project
+---
 
-# Create build directory  
-mkdir build && cd build  
+## ⚙️ Build Instructions
 
-# Configure with CMake (Debug mode)  
-cmake -DCMAKE_BUILD_TYPE=Debug ..  
+```bash
+# Clone repository
+git clone https://github.com/YugamJain068/KV-STORE-PROJECT
+cd kvstore_project
 
-# Build  
-make   
-````
+# Create build directory
+mkdir build && cd build
 
-Running the Distributed Cluster
--------------------------------
+# Configure with CMake (Debug mode)
+cmake -DCMAKE_BUILD_TYPE=Debug ..
+
+# Build project
+make
+```
+
+---
+
+## 🚀 Running the Distributed Cluster
 
 ### Option 1: Automated 3-Node Cluster
-
 ```bash
-# Starts 3 nodes on ports 5000, 5001, 5002  
+# Launch 3 Raft nodes on ports 5000, 5001, and 5002
 ./kvstore
 ```
-### Option 2: Manual Node Startup
 
+### Option 2: Manual Startup
 ```bash
 # Terminal 1 - Node 0
-./kvstore --node-id 0 --port 5000 --peers 5001,5002  
+./kvstore --node-id 0 --port 5000 --peers 5001,5002
 
 # Terminal 2 - Node 1
-./kvstore --node-id 1 --port 5001 --peers 5000,5002  
+./kvstore --node-id 1 --port 5001 --peers 5000,5002
 
 # Terminal 3 - Node 2
-./kvstore --node-id 2 --port 5002 --peers 5000,5001   
+./kvstore --node-id 2 --port 5002 --peers 5000,5001
 ```
-Client Interaction
-------------------
 
-Connect to any node, but write operations only work on the leader:
+---
+
+## 💬 Client Interaction
+
+Clients can connect to any node using Netcat or telnet.  
+Write operations succeed **only on the leader**.
 
 ```bash
-nc localhost 5000  
-PUT key1 value1  
-GET key1  
-DELETE key1  
-EXIT   
+nc localhost 5000
+PUT key1 value1
+GET key1
+DELETE key1
+EXIT
 ```
 
-Sample Output
--------------
+### Sample Output
+```bash
+# On leader node
+PUT key1 value1  → key1 added successfully.
 
-``` bash
+# On follower node
+PUT key2 value2  → Error: Not leader. Current leader is Node 0
 
-# On leader node  
-PUT key1 value1  → key1 added successfully.  
-
-# On follower node    
-PUT key2 value2  → Error: Not leader. Current leader is Node 0  
-
-GET key1  → value of key1: value1   
+GET key1  → value of key1: value1
 ```
 
-Raft Consensus Flow
--------------------
+---
 
-1.  **Client Command**: Client sends PUT/DELETE to any node
-    
-2.  **Leader Check**: Only leader accepts write commands
-    
-3.  **Log Append**: Leader appends command to its log
-    
-4.  **Replication**: Leader sends AppendEntries RPCs to followers
-    
-5.  **Majority Commit**: Once majority of nodes replicate entry, it's committed
-    
-6.  **State Machine**: Command applies to KV store after commit
-    
-7.  **Client Response**: Leader responds to client with success/failure
-    
+## 🔄 Raft Consensus Flow
 
-Thread Safety & Concurrency
----------------------------
+1. Client sends command (PUT/DELETE)  
+2. Node checks if it is the leader  
+3. Leader appends command to log  
+4. Leader sends AppendEntries RPCs to followers  
+5. Once majority acknowledge → entry is committed  
+6. Command applied to state machine (KV Store)  
+7. Client receives success response  
 
-*   **Per-Node Protection**: Each RaftNode has its own mutex for state protection
-    
-*   **Multi-threaded RPC**: Each node runs TCP server handling multiple concurrent RPCs
-    
-*   **Election Timers**: Separate threads handle election timeouts
-    
-*   **Client Handlers**: Separate threads for each client connection
-    
-*   **Lock Ordering**: Prevents deadlocks in multi-node operations
-    
+---
 
-Testing
--------
+## 🧵 Thread Safety & Concurrency
 
-The project includes comprehensive GoogleTest-based tests:
+- **Mutex Protection** – Each Raft node’s shared state guarded by `std::mutex`  
+- **Threaded RPC** – Each RPC runs in a separate thread  
+- **Client Threads** – Each connection handled concurrently  
+- **Election Timers** – Independent timer threads per node  
+- **Snapshot Threads** – Background compaction and checkpoint handling  
+
+---
+
+## 🧪 Testing Suite
 
 ### Raft Tests
-
-*   **Leader Election**: Verifies single leader election
-    
-*   **Log Replication**: Tests command replication across nodes
-    
-*   **Persistence**: Validates state recovery after restarts
-    
-*   **Network Partitions**: Simulates split-brain scenarios
-    
+- ✅ Leader election stability  
+- ✅ Log replication across nodes  
+- ✅ State persistence & recovery  
+- ✅ Network partitions and rejoining  
 
 ### Integration Tests
+- ✅ Full client-server-consensus flow  
+- ✅ Concurrent clients  
+- ✅ Failure recovery (leader crash + restore)  
 
-*   **End-to-End**: Full client-server-consensus flow
-    
-*   **Concurrent Operations**: Multiple clients, multiple nodes
-    
-*   **Failure Recovery**: Node failures and rejoin scenarios
-    
-
-### Legacy KV Store Tests
-
-*   **CRUD Operations**: Basic key-value operations
-    
-*   **WAL Persistence**: Write-ahead logging functionality
-    
-*   **Concurrency Stress**: High-load concurrent access
-    
+### KV Store Tests
+- ✅ CRUD operations  
+- ✅ WAL persistence & replay  
+- ✅ Snapshot loading  
+- ✅ Concurrency stress tests  
 
 ```bash
-# Run all tests  
-./runTests  
+# Run all tests
+./runTests
 
-# Run only Raft tests  
-./runTests --gtest_filter="RaftClusterTest.*"  
+# Run only Raft tests
+./runTests --gtest_filter="RaftClusterTest.*"
 ```
 
-Persistent Storage
-------------------
+---
+
+## 💽 Persistent Storage
 
 ### Raft Metadata
+Each node stores persistent JSON files like:
+```
+RaftNode0.json
+RaftNode1.json
+RaftNode2.json
+```
+Containing:
+- Current term  
+- VotedFor  
+- Log entries  
 
-Each node maintains persistent files:
+### Write-Ahead Log (WAL)
+- Append-only file for each node  
+- Replayed at startup for state recovery  
 
-*   RaftNode0.json - Node 0's term, votedFor, and log
-    
-*   RaftNode1.json - Node 1's term, votedFor, and log
-    
-*   RaftNode2.json - Node 2's term, votedFor, and log
-    
+### Snapshots & Checkpointing
+- Periodic state snapshots reduce log size  
+- Checkpoints capture full KV state and last included index  
+- Enables quick restart without full log replay  
 
-### WAL Recovery
+---
 
-*   Write-ahead log for KV operations
-    
-*   Automatic replay on node restart
-    
-*   Consistent state restoration across cluster
-    
+## 🧰 CLI & Metrics
 
-Fault Tolerance
----------------
+### CLI Admin Tool
+```bash
+STATUS
+METRICS
+LOGSIZE
+SNAPSHOT
+LOGS [count]
+CLUSTER
+WATCH [seconds]
+```
+
+### Metrics Logging
+- Current term, leader ID, commit index  
+- AppendEntries success/failure rates  
+- Snapshot interval events  
+- Client request counts  
+
+---
+
+## 🔒 Fault Tolerance
 
 ### Leader Failure
+- Followers detect missing heartbeats  
+- Trigger new election automatically  
+- State restored via persistent log  
 
-*   **Detection**: Followers detect leader failure via heartbeat timeout
-    
-*   **Election**: New leader election with incremented term
-    
-*   **Recovery**: New leader continues from last committed index
-    
-
-### Network Partitions
-
-*   **Split Brain Prevention**: Requires majority for leader election
-    
-*   **Minority Partition**: Minority nodes become followers, reject writes
-    
-*   **Partition Healing**: Nodes sync logs when partition resolves
-    
+### Network Partition
+- Majority partition elects leader  
+- Minority stays follower  
+- When healed, logs synchronize automatically  
 
 ### Node Recovery
+- Restores persisted term, log, and snapshot  
+- Automatically catches up with current leader  
+- No manual repair required  
 
-*   **State Restoration**: Recovering nodes load persistent state
-    
-*   **Log Catchup**: Leaders help recovering nodes catch up
-    
-*   **Automatic Integration**: No manual intervention required
-    
+---
 
-Development Status
-------------------
+## 🧭 Development Progress
 
-### ✅ Completed (Week 3 Deliverables)
+### ✅ Completed (All Phases)
+| Phase | Deliverables |
+|:--|:--|
+| **Phase 1: Foundation (Week 1–2)** | Single-node KV store, WAL persistence, thread-safety, TCP server |
+| **Phase 2: Raft Core (Week 3–6)** | Leader election, heartbeat, log replication, fault tolerance |
+| **Phase 3: Advanced & Polish (Week 7–9)** | Snapshotting, checkpointing, CLI tool, metrics/logging, final refactor |
 
-*   **RaftNode Structure**: Complete node state management
-    
-*   **Leader Election**: Randomized timeouts, vote requests, majority consensus
-    
-*   **Persistent State**: Term, votedFor, and log entries survive restarts
-    
-*   **AppendEntries Implementation**: Heartbeats and log replication
-    
-*   **TCP-based RPC Server**: Multi-port JSON RPC communication
-    
-*   **Consensus-Driven KV Store**: Commands apply only after Raft commit
-    
-*   **Unit Tests**: Leader election and log replication test coverage
-    
+---
 
-### 🚧 Future Enhancements
+## 🧱 Repository Structure
 
-*   **Log Compaction**: Snapshot mechanism to prevent unbounded log growth
-    
-*   **Dynamic Membership**: Add/remove nodes from cluster
-    
-*   **Client Redirection**: Automatic redirect to leader node
-    
-*   **Monitoring**: Metrics and health check endpoints
-    
-*   **Configuration Management**: External config files for cluster setup
-    
+```
+kvstore_project/
+├── src/
+│   ├── decode_encodebase64.h/cpp   # Base64 encoding/decoding utilities for snapshots/logs
+│   ├── kvstore_global.h            # Global constants, enums, and utility definitions
+│   ├── kvstore.h/cpp               # Core key-value store logic (PUT, GET, DELETE)
+│   ├── log_entry.h                 # Raft log entry structure (term, index, command)
+│   ├── logger.h/cpp                # Centralized logging utilities
+│   ├── main.cpp                    # Application entry point
+│   ├── metrics.h                   # Metrics definitions and monitoring utilities
+│   ├── persist_functions.h/cpp     # Persistence helpers for Raft metadata and KV state
+│   ├── raft_node.h/cpp             # Raft consensus algorithm implementation
+│   ├── rpc_server.h/cpp            # TCP/JSON-based RPC communication between nodes
+│   ├── server.h/cpp                # Client-facing server for handling CRUD commands
+│   ├── snapshot.h/cpp              # Snapshot and checkpointing mechanism
+│   └── wal.h/cpp                   # Write-Ahead Logging (WAL) for durability
+├── tests/
+│   ├── raft_tests.cpp              # Unit tests for Raft election and replication
+│   ├── kvstore_tests.cpp           # Tests for KV operations and WAL recovery
+│   ├── concurrency_tests.cpp       # KVStoreConcurrencyTest for multiple threads
+│   ├── wal_recovery_tests.cpp      # tests for wal persistance and recovery
+│   └── tcp_server_tests.cpp        # tests for basic CRUD in tcp server
+│
+├── CMakeLists.txt             # Build configuration
+└── README.md                  # Project documentation
+```
 
-Repository Structure
---------------------
+---
 
-  kvstore_project  
-  ├── src/  
-  │   ├── raft_node.h/cpp     # Raft consensus implementation   
-  │   ├── rpc_server.h/cpp    # TCP RPC communication  
-  │   ├── persist_functions.h # Persistent storage utilities  
-  │   ├── kvstore.h/cpp       # Key-value store logic  
-  │   └── main.cpp            # Application entry point  
-  ├── tests/  
-  │   ├── raft_tests.cpp      # Raft algorithm tests  
-  │   ├── kvstore_tests.cpp   # KV store functionality tests  
-  │   └── integration_tests.cpp # End-to-end tests  
-  ├── CMakeLists.txt          # Build configuration  
-  └── README.md               # This file   
+## 🚧 Future Enhancements
+
+- 🔄 **Dynamic Membership** – Add/remove nodes without restart  
+- 🌐 **HTTP API Layer** – RESTful interface for modern clients   
+- 🔍 **Dashboard UI** – Real-time cluster monitoring  
+- 🪶 **Compression & Encryption** – Secure & efficient storage  
+
+---
+
+**Author:** [Yugam Jain](https://github.com/YugamJain068)  
+**Language:** C++17  
+**Build System:** CMake  
+**Testing Framework:** GoogleTest  
+**Networking:** TCP (JSON RPC)  
+**Consensus Algorithm:** Raft  
