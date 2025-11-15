@@ -17,7 +17,7 @@ using Clock = std::chrono::steady_clock;
 
 std::mutex store_mutex;
 std::atomic<bool> raftShutdownRequested(false);
-const int SNAPSHOT_THRESHOLD = 100;
+const int SNAPSHOT_THRESHOLD = 3000;
 
 void requestRaftShutdown()
 {
